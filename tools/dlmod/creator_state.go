@@ -38,11 +38,12 @@ func (g *creatorGen) running() bool {
 }
 
 type creatorState struct {
-	Hero    string            `json:"hero"`
-	Answers creatorAnswers    `json:"answers"`
-	Concept string            `json:"concept"`
-	Gens    []*creatorGen     `json:"generations"`
-	Chosen  map[string]string `json:"chosen"` // step -> generation kept
+	Hero       string            `json:"hero"`
+	Answers    creatorAnswers    `json:"answers"`
+	Concept    string            `json:"concept"`
+	Gens       []*creatorGen     `json:"generations"`
+	Chosen     map[string]string `json:"chosen"`               // step -> generation kept
+	RefsForAll bool              `json:"refsForAll,omitempty"` // every picture gets the reference pictures, not only the design sheet
 }
 
 // creatorSteps are the workspace steps the creator runs, in the order the page shows them. An

@@ -17,7 +17,7 @@ import (
 
 // Character packs: a character made for a hero (the creator's folder, game/dlmod/characters/<hero>,
 // or a workspace folder such as meshy/<hero>) in one file, <name>.dlmodchar. It is a ZIP of the
-// workspace, its assets and the creator's state, which dlmod can install (dlmod apply), unpack
+// workspace, its assets, the reference pictures and the creator's state, which dlmod can install (dlmod apply), unpack
 // into the creator (dlmod unpack), or keep beside other characters made for the same hero
 // (game/dlmod/characters/saved/<hero>).
 
@@ -39,7 +39,7 @@ type packManifest struct {
 }
 
 // packTop are the files and folders a pack may hold.
-var packTop = []string{packManifestN, "workspace.json", "creator.json", "README.md", "prompts.md", "assets/", "gen/"}
+var packTop = []string{packManifestN, "workspace.json", "creator.json", "README.md", "prompts.md", "assets/", "gen/", "refs/"}
 
 func (g Game) charactersDir() string { return filepath.Join(g.StateDir(), "characters") }
 
@@ -112,14 +112,16 @@ func exportPack(dir string) ([]byte, packManifest, error) {
 			}
 		}
 	}
-	var assets []string
-	filepath.WalkDir(filepath.Join(dir, "assets"), func(p string, d os.DirEntry, err error) error {
-		if err == nil && d.Type().IsRegular() && !strings.HasSuffix(d.Name(), "_keyed.png") { // keyed copies are made again
-			rel, _ := filepath.Rel(dir, p)
-			assets = append(assets, filepath.ToSlash(rel))
-		}
-		return nil
-	})
+	var assets []string // the made files, and the reference pictures they were made from
+	for _, folder := range []string{"assets", "refs"} {
+		filepath.WalkDir(filepath.Join(dir, folder), func(p string, d os.DirEntry, err error) error {
+			if err == nil && d.Type().IsRegular() && !strings.HasSuffix(d.Name(), "_keyed.png") { // keyed copies are made again
+				rel, _ := filepath.Rel(dir, p)
+				assets = append(assets, filepath.ToSlash(rel))
+			}
+			return nil
+		})
+	}
 	sort.Strings(assets)
 	for _, name := range assets {
 		if err := addFile(name); err != nil {
@@ -430,6 +432,9 @@ func savePack(game Game, dir string) (string, packManifest, error) {
 func worthKeeping(dir string) bool {
 	if !fileExists(filepath.Join(dir, "workspace.json")) {
 		return false
+	}
+	if refs, _ := os.ReadDir(filepath.Join(dir, "refs")); len(refs) > 0 {
+		return true
 	}
 	entries, _ := os.ReadDir(filepath.Join(dir, "assets"))
 	for _, e := range entries {

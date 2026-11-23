@@ -27,6 +27,12 @@ button:hover:not(:disabled) { border-color: var(--accent-dim); }
 button:disabled { opacity: .45; cursor: default; }
 button.primary { background: var(--accent); color: #1a1407; border-color: var(--accent); font-weight: 600; width: 100%; padding: 9px; }
 .drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 18px 12px; text-align: center; color: var(--dim); cursor: pointer; }
+.refdrop { padding: 10px; font-size: 12px; }
+.refdrop.full { opacity: .5; pointer-events: none; }
+.refs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0; }
+.ref { position: relative; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #0d0e11; }
+.ref img { width: 100%; height: 100%; object-fit: cover; }
+.ref button { position: absolute; top: 3px; right: 3px; padding: 0 6px; font-size: 12px; line-height: 18px; }
 .drop.over { border-color: var(--accent); color: var(--text); background: #221f17; }
 .drop b { color: var(--text); display: block; margin-bottom: 2px; }
 .row { display: grid; grid-template-columns: 64px 1fr 52px; align-items: center; gap: 8px; margin: 6px 0; }
@@ -222,6 +228,11 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <input type="text" id="qItem" placeholder="a weapon or prop">
     <label class="q" for="qDetails">Anything else</label>
     <textarea id="qDetails" rows="3" placeholder="clothes, materials, face, personality…"></textarea>
+    <label class="q">Reference pictures (optional)</label>
+    <div class="drop refdrop" id="refDrop">Drop pictures of your character here, or click to pick them: a sketch, concept art, a photo of a figure. Up to 4, PNG or JPEG.
+      <input type="file" id="refFile" accept="image/png,image/jpeg,image/gif" multiple hidden></div>
+    <div class="refs" id="refList"></div>
+    <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="refAll"> Use them for every picture, not only the design sheet</label>
     <label class="q">Tags on the hero select screen</label>
     <div class="tagins"><input type="text" id="qT1" maxlength="16"><input type="text" id="qT2" maxlength="16"><input type="text" id="qT3" maxlength="16"></div>
     <div class="buttons" style="margin-top:10px"><button class="primary" id="qSave">Write the prompts</button></div>
@@ -1605,9 +1616,45 @@ $("meshyKeySave").onclick = async () => {
 
 // steps
 function stepTitle(id) { return { design_sheet: "design sheet", turnaround: "set of views", model: "3D model" }[id] || id; }
+// Reference pictures: the design sheet is drawn from them, and every picture with "use them for
+// every picture".
+function renderRefs() {
+  const v = cr.view, list = $("refList"); list.innerHTML = "";
+  if (!v) return;
+  for (const name of v.refs || []) {
+    const item = el("div", "ref");
+    const img = el("img"); img.src = `/api/creator/ref?hero=${encodeURIComponent(cr.hero)}&name=${encodeURIComponent(name)}&t=${TOKEN}`;
+    const remove = el("button", "", "×"); remove.title = "Remove this picture";
+    remove.onclick = async () => {
+      try { cr.view = { ...cr.view, ...(await api("creator/refs/remove", { hero: cr.hero, ref: name })) }; renderCreator(); }
+      catch (e) { $("qInfo").textContent = e.message; }
+    };
+    item.append(img, remove); list.append(item);
+  }
+  $("refAll").checked = !!v.refsForAll;
+  $("refDrop").classList.toggle("full", (v.refs || []).length >= 4);
+}
+async function addRefs(files) {
+  if (!cr.hero || !files.length) return;
+  const form = new FormData(); form.append("hero", cr.hero);
+  for (const f of files) form.append("file", f, f.name);
+  busy("Adding the reference pictures…");
+  try { cr.view = { ...cr.view, ...(await api("creator/refs/add", form, true)) }; renderCreator(); $("qInfo").textContent = ""; }
+  catch (e) { $("qInfo").textContent = e.message; }
+  busy();
+}
+$("refDrop").onclick = () => $("refFile").click();
+$("refFile").onchange = () => { const files = [...$("refFile").files]; $("refFile").value = ""; addRefs(files); };
+$("refDrop").ondragover = e => { e.preventDefault(); e.stopPropagation(); };
+$("refDrop").ondrop = e => { e.preventDefault(); e.stopPropagation(); addRefs([...e.dataTransfer.files]); };
+$("refAll").onchange = async () => {
+  try { cr.view = { ...cr.view, ...(await api("creator/refs/options", { hero: cr.hero, forAll: $("refAll").checked })) }; renderCreator(); }
+  catch (e) { $("qInfo").textContent = e.message; }
+};
 function renderCreator() {
   const v = cr.view;
   $("createEmpty").hidden = !!v; $("createSteps").hidden = !v;
+  renderRefs();
   if (!v) return;
   $("crFolder").textContent = "Saved in " + v.folder;
   const groups = { character: $("stepsCharacter"), model: $("stepsModel"), pictures: $("stepsPictures"), props: $("stepsProps") };

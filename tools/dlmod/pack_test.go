@@ -211,3 +211,12 @@ func TestLocalPath(t *testing.T) {
 		}
 	}
 }
+
+func packHas(z *zip.Reader, name string) bool {
+	for _, f := range z.File {
+		if f.Name == name {
+			return true
+		}
+	}
+	return false
+}

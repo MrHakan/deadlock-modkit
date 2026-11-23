@@ -10,6 +10,7 @@ import (
 	"image/color"
 	"image/png"
 	"math"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -222,9 +223,40 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 		return creatorGen{}
 	}
 	dir := filepath.Join(game.Game.StateDir(), "characters", "wraith")
+	// Two reference pictures of the character: the design sheet is drawn from them.
+	var form bytes.Buffer
+	parts := multipart.NewWriter(&form)
+	parts.WriteField("hero", "wraith")
+	for _, name := range []string{"sketch.png", "figure.png"} {
+		f, _ := parts.CreateFormFile("file", name)
+		f.Write(pngFile(t, 3000, 1500, color.NRGBA{200, 40, 40, 255}))
+	}
+	parts.Close()
+	request, _ := http.NewRequest("POST", server.URL+"/api/creator/refs/add", &form)
+	request.Header.Set("Content-Type", parts.FormDataContentType())
+	request.Header.Set("X-Studio", "secret")
+	response, err := http.DefaultClient.Do(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	var withRefs struct{ Refs []string }
+	json.NewDecoder(response.Body).Decode(&withRefs)
+	response.Body.Close()
+	if response.StatusCode != 200 || len(withRefs.Refs) != 2 {
+		t.Fatalf("references: %d %+v", response.StatusCode, withRefs)
+	}
+	if kept, err := os.ReadFile(filepath.Join(dir, "refs", withRefs.Refs[0])); err != nil {
+		t.Fatal(err)
+	} else if img, err := png.Decode(bytes.NewReader(kept)); err != nil || img.Bounds().Dx() != refPixel {
+		t.Fatalf("a reference is kept at most %d across: %v %v", refPixel, img.Bounds(), err)
+	}
 	sheet := run("design_sheet", "")
 	if len(sheet.Files) != 1 || !fileExists(filepath.Join(dir, "assets", "design_sheet.png")) {
 		t.Fatalf("design sheet %+v", sheet)
+	}
+	if body := fake.bodies[sheet.TaskID]; fake.kinds[sheet.TaskID] != "image-to-image" || len(body["reference_image_urls"].([]any)) != 2 ||
+		!strings.HasPrefix(body["prompt"].(string), "Draw the character in the reference pictures") || body["aspect_ratio"] != "16:9" {
+		t.Fatalf("a design sheet from references: %s %v", fake.kinds[sheet.TaskID], body)
 	}
 	views := run("turnaround", "nano-banana")
 	if len(views.Files) != 3 || !fileExists(filepath.Join(dir, "assets", "views_3.png")) {
@@ -273,6 +305,10 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 		t.Fatalf("prop model %s %v", fake.kinds[prop.TaskID], body)
 	}
 	// Several pictures at once, after one confirmation of their total price.
+	// With "every picture", the card gets the references after the design sheet.
+	if code, body := call("creator/refs/options", map[string]any{"hero": "wraith", "forAll": true}, nil); code != 200 {
+		t.Fatalf("options: %d %s", code, body)
+	}
 	batch := map[string]any{"hero": "wraith", "steps": []map[string]string{{"step": "card"}}}
 	if code, body := call("creator/batch", batch, nil); code == 200 || !strings.Contains(body, "cost 9 credits together") {
 		t.Fatalf("a batch ran without confirming: %d %s", code, body)
@@ -288,7 +324,8 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	}
 	cardGen := wait("card")
 	body = fake.bodies[cardGen.TaskID]
-	if body["remove_background"] != true || strings.Contains(body["prompt"].(string), "green") {
+	if body["remove_background"] != true || strings.Contains(body["prompt"].(string), "green") || len(body["reference_image_urls"].([]any)) != 3 ||
+		!strings.Contains(body["prompt"].(string), "reference pictures after the first") {
 		t.Fatalf("a card has Meshy remove its background: %v", body)
 	}
 	// An edit changes that picture and takes its place.
@@ -319,7 +356,7 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	if code, body := call("creator/pack/save", map[string]string{"hero": "wraith"}, &packs); code != 200 || len(packs.Packs) != 1 || packs.Saved != "rook.dlmodchar" {
 		t.Fatalf("save: %d %s", code, body)
 	}
-	response, err := http.Get(server.URL + "/api/creator/pack/download?hero=wraith&t=secret")
+	response, err = http.Get(server.URL + "/api/creator/pack/download?hero=wraith&t=secret")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -328,6 +365,9 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	response.Body.Close()
 	if manifest, err := packManifestOf(pack.Bytes()); err != nil || manifest.Name != "Rook" || manifest.Hero != "wraith" {
 		t.Fatalf("download: %+v %v", manifest, err)
+	}
+	if z, _, err := openPack(pack.Bytes()); err != nil || !packHas(z, "refs/"+withRefs.Refs[0]) {
+		t.Fatal("the pack leaves the reference pictures out")
 	}
 	var opened struct{ Opened string }
 	if code, body := call("creator/pack/open", map[string]string{"hero": "wraith", "pack": "rook.dlmodchar"}, &opened); code != 200 || opened.Opened != "Rook" {

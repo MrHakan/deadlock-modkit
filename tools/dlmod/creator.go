@@ -264,7 +264,7 @@ func (c *creatorSession) view(s *studio) map[string]any {
 	for _, st := range creatorSteps(c.work) {
 		models := map[string]int{}
 		for _, m := range creatorModels(st) {
-			models[m] = meshyPrice(creatorKind(st, m), m)
+			models[m] = meshyPrice(c.kind(st, m), m)
 		}
 		group := "pictures"
 		switch st.ID {
@@ -278,7 +278,7 @@ func (c *creatorSession) view(s *studio) map[string]any {
 		}
 		needs := creatorNeeds(st.ID)
 		steps = append(steps, creatorStepView{
-			workspaceStep: st, Task: creatorKind(st, creatorModels(st)[0]), Models: models, Default: creatorModels(st)[0], Group: group, Needs: needs,
+			workspaceStep: st, Task: c.kind(st, creatorModels(st)[0]), Models: models, Default: creatorModels(st)[0], Group: group, Needs: needs,
 			Ready: needs == "" || c.kept(needs) != nil, Filled: filled(st.Prompt, c.work),
 		})
 	}
@@ -289,6 +289,7 @@ func (c *creatorSession) view(s *studio) map[string]any {
 	return map[string]any{
 		"hero": c.state.Hero, "name": heroDisplayName(c.state.Hero), "answers": c.state.Answers, "concept": c.state.Concept,
 		"steps": steps, "generations": gens, "chosen": c.state.Chosen, "hasKey": loadMeshyKey(s.game) != "",
+		"refs": refNames(c.refs()), "refsForAll": c.state.RefsForAll,
 		"folder": c.dir,
 	}
 }
@@ -307,6 +308,8 @@ type creatorRequest struct {
 	Effects bool           `json:"effects"` // install: recolour the hero's effects with the character's colours
 	Scene   string         `json:"scene"`   // install: "frame" to show the installed 3D model on the hero select screen
 	Pack    string         `json:"pack"`    // a saved character pack, by file name
+	Ref     string         `json:"ref"`     // a reference picture, by file name
+	ForAll  bool           `json:"forAll"`  // reference pictures for every picture
 }
 
 func (s *studio) creatorRequest(r *http.Request) (creatorRequest, *creatorSession, error) {
@@ -478,7 +481,7 @@ func (c *creatorSession) price(stepID, model, edit string) (int, error) {
 	if model == "" {
 		model = creatorModels(step)[0]
 	}
-	kind := creatorKind(step, model)
+	kind := c.kind(step, model)
 	if edit != "" {
 		kind = "image-to-image"
 	}
@@ -497,7 +500,13 @@ func (s *studio) startStep(c *creatorSession, stepID, model, prompt, edit string
 	if model == "" {
 		model = creatorModels(step)[0]
 	}
-	kind := creatorKind(step, model)
+	kind := c.kind(step, model)
+	// The user's reference pictures: the design sheet is drawn from them, and with RefsForAll
+	// every other picture gets them after the picture it builds on (not edits, which keep to one).
+	var userRefs []string
+	if edit == "" && kind == "image-to-image" && (step.ID == "design_sheet" || c.state.RefsForAll) {
+		userRefs = c.refs()
+	}
 	var base *creatorGen
 	prompt = strings.TrimSpace(prompt)
 	if edit != "" {
@@ -530,6 +539,12 @@ func (s *studio) startStep(c *creatorSession, stepID, model, prompt, edit string
 		c.mu.Unlock()
 		return nil, errors.New("describe your character first: the prompt still has a blank in it")
 	}
+	switch {
+	case len(userRefs) > 0 && step.ID == "design_sheet":
+		prompt = "Draw the character in the reference pictures, keeping its look, shapes and colours. " + prompt
+	case len(userRefs) > 0:
+		prompt += " The reference pictures after the first show the same character as its maker drew it."
+	}
 	price := meshyPrice(kind, model)
 	var files []string
 	if base != nil {
@@ -544,11 +559,22 @@ func (s *studio) startStep(c *creatorSession, stepID, model, prompt, edit string
 	case "text-to-image":
 		body = map[string]any{"ai_model": model, "prompt": prompt, "aspect_ratio": orDefault(step.Aspect, "16:9")}
 	case "image-to-image":
-		ref, err := dataURI(files[0])
-		if err != nil {
-			return nil, err
+		var refs []string
+		sources := append(append([]string{}, files[:min(len(files), 1)]...), userRefs...)
+		for _, f := range sources {
+			if len(refs) == 5 { // Meshy takes one to five
+				break
+			}
+			ref, err := dataURI(f)
+			if err != nil {
+				return nil, err
+			}
+			refs = append(refs, ref)
 		}
-		body = map[string]any{"ai_model": model, "prompt": prompt, "reference_image_urls": []string{ref}}
+		if len(refs) == 0 {
+			return nil, errors.New("there is no picture to start from")
+		}
+		body = map[string]any{"ai_model": model, "prompt": prompt, "reference_image_urls": refs}
 		if step.ID == "turnaround" && edit == "" {
 			body["generate_multi_view"] = true
 		} else {
@@ -953,4 +979,5 @@ func (s *studio) creatorRoutes(api func(string, func(*http.Request) (any, error)
 	api("creator/install", s.creatorInstall)
 	api("creator/list", s.creatorList)
 	s.creatorPackRoutes(api)
+	s.creatorRefRoutes(api)
 }
