@@ -474,6 +474,14 @@
     "modelFolder": "models/heroes_wip/artist/",
     "height": 108.30747127532959,
     "skeleton": "models/heroes_wip/artist/artist.vnmskel",
+    "clipFolder": "models/heroes_wip/artist/clips/",
+    "clips": 237,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "melee_UpperBody",

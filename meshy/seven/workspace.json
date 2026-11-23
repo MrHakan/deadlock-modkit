@@ -310,6 +310,15 @@
     "modelFolder": "models/heroes_staging/gigawatt_prisoner/",
     "height": 112.85313606262207,
     "skeleton": "models/heroes_staging/gigawatt_prisoner/gigawatt_prisoner.vnmskel",
+    "clipFolder": "models/heroes_staging/gigawatt_prisoner/clips/",
+    "clips": 190,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "melee_dash",

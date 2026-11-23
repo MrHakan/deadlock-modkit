@@ -340,6 +340,15 @@
     "modelFolder": "models/heroes_wip/fencer/",
     "height": 110.38702583312988,
     "skeleton": "models/heroes_wip/fencer/fencer.vnmskel",
+    "clipFolder": "models/heroes_wip/fencer/clips/",
+    "clips": 251,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",

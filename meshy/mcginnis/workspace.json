@@ -345,6 +345,14 @@
     "modelFolder": "models/heroes_wip/mcginnis/",
     "height": 108.74274826049805,
     "skeleton": "models/heroes_wip/mcginnis/mcginnis.vnmskel",
+    "clipFolder": "models/heroes_wip/mcginnis/clips/",
+    "clips": 268,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Ability_idle",
       "Cast_UpperBody",

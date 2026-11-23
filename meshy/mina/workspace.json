@@ -304,6 +304,8 @@
     "modelFolder": "models/heroes_wip/vampirebat/",
     "height": 100.90619611740112,
     "skeleton": "models/heroes_wip/vampirebat/vampirebat.vnmskel",
+    "clipFolder": "models/heroes_wip/vampirebat/clips/",
+    "clips": 211,
     "boneMasks": [
       "Reload_Idle",
       "Reload_InAir",

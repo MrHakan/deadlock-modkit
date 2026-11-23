@@ -344,13 +344,21 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
       <button data-tool="pin">Pin pieces</button><button data-tool="joints" id="jointsTool">Joint map</button>
     </div>
     <div id="tool-pose" style="margin-top:8px">
+      <div class="row"><label for="clipName">Clip</label><select id="clipName"></select></div>
+      <div class="row"><label for="clipOver">Over</label><select id="clipOver"></select></div>
+      <div class="row"><label for="clipMask">Mask</label><select id="clipMask"></select></div>
+      <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="clipIK" checked> Arms reach for the gun and feet for the ground (IK), as in game</label>
+      <div class="buttons"><button class="primary" id="clipPlay" disabled>Play the game's clip</button></div>
+      <div class="info" id="clipInfo"></div>
+      <div class="info" style="margin-top:8px">Quick bends:</div>
       <div class="buttons">
         <button data-anim="walk">Walk</button><button data-anim="run">Run</button><button data-anim="crouch">Crouch</button>
         <button data-anim="jump">Jump</button><button data-anim="armsup">Arms up</button><button data-anim="look">Look around</button>
       </div>
       <div class="buttons"><button data-anim="">Stop</button></div>
       <div class="info" style="margin-top:6px">The hero's own skeleton bends here and moves your model by its weights, as the game does.
-        The motions are made up to show how the rig bends; the game's own animation clips are not read yet.</div>
+        The clips are the hero's own. Melee, reloads and casts play in game over the movement through a bone mask, which is
+        picked for them here; the game blends more layers than this, so treat it as close, not exact. The quick bends are made up.</div>
     </div>
     <div id="tool-weights" hidden style="margin-top:8px">
       <select id="weightBone"></select>
@@ -720,6 +728,7 @@ function setupAdvanced(result) {
   if (!result.skeleton) { $("advanced").hidden = true; return; }
   const bin = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
   adv.skeleton = result.skeleton;
+  loadClips();
   adv.bones = new Uint16Array(bin(result.bones)); adv.weights = new Float32Array(bin(result.weights));
   adv.pieces = new Uint32Array(bin(result.pieces)); adv.pieceCount = result.pieceCount;
   adv.jointMap = result.jointMap || {}; adv.jointVertices = result.jointVertices || {};
@@ -957,6 +966,78 @@ function play(name) {
   animFrame = requestAnimationFrame(frame);
 }
 document.querySelectorAll("[data-anim]").forEach(b => b.onclick = () => play(b.dataset.anim));
+
+// The hero's own clips: the server poses the hero's animation skeleton for each frame (masks and
+// IK included) and sends every bone's matrix; the page skins the model with them.
+const clips = { hero: null, list: [], suggest: {}, base: "" };
+function fillSelect(select, items, value, none) {
+  select.innerHTML = "";
+  if (none) select.add(new Option(none, ""));
+  for (const item of items) select.add(new Option(item, item));
+  select.value = value || "";
+}
+async function loadClips() {
+  const hero = $("hero").value;
+  if (!hero || clips.hero === hero) return;
+  clips.hero = hero; clips.list = []; $("clipPlay").disabled = true;
+  $("clipInfo").textContent = "Reading the hero's clips…";
+  try {
+    const r = await api("clips", { hero });
+    Object.assign(clips, { list: r.clips, suggest: r.suggest, base: r.base });
+    fillSelect($("clipName"), r.clips, r.play);
+    fillSelect($("clipOver"), r.clips, "", "nothing: the clip alone");
+    fillSelect($("clipMask"), r.masks, "", "the whole body");
+    $("clipInfo").textContent = `${r.clips.length} clips in ${r.folder}`;
+    $("clipPlay").disabled = !r.clips.length;
+  } catch (e) { clips.hero = null; $("clipInfo").textContent = e.message; }
+}
+$("clipName").onchange = () => {
+  const mask = clips.suggest[$("clipName").value] || "";
+  $("clipMask").value = mask; $("clipOver").value = mask ? clips.base : "";
+};
+async function playClip() {
+  if (!state.rig || !adv.skeleton) return;
+  stopAnim();
+  busy("Reading the clip…");
+  let r;
+  try {
+    r = await api("clip", { hero: $("hero").value, clip: $("clipName").value, over: $("clipOver").value, mask: $("clipMask").value, ik: $("clipIK").checked });
+  } catch (e) { busy(); $("clipInfo").textContent = e.message; return; }
+  busy();
+  const m = decodeFloats(r.matrices), sk = adv.skeleton, n = sk.names.length, nb = r.bones.length;
+  const at = r.bones.map(b => sk.names.indexOf(b));
+  const invWorld = [];
+  for (let i = 0; i < n; i++) invWorld.push(inverse(sk.world.slice(i * 12, i * 12 + 12)));
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
+  const frames = [];
+  for (let f = 0; f < r.frames; f++) {
+    const skin = new Array(n).fill(null);
+    for (let k = 0; k < nb; k++) {
+      const i = at[k];
+      if (i < 0 || r.parents[k] < 0) continue; // the root stays: the hero moves on the spot
+      skin[i] = mul(Array.from(m.subarray((f * nb + k) * 12, (f * nb + k + 1) * 12)), invWorld[i]);
+    }
+    // Bones of the model the clips do not animate follow their parent.
+    for (let i = 0; i < n; i++) if (!skin[i]) skin[i] = sk.parents[i] >= 0 && skin[sk.parents[i]] ? skin[sk.parents[i]] : identity;
+    frames.push(skin);
+  }
+  const name = "clip:" + $("clipName").value;
+  adv.anim = name;
+  drawModel(new Float32Array(state.rig));
+  for (const mesh of modelGroup.children) mesh.frustumCulled = false;
+  const fps = r.frames > 1 && r.duration > 0 ? (r.frames - 1) / r.duration : 30, start = performance.now();
+  $("clipInfo").textContent = `${$("clipName").value}: ${r.duration.toFixed(2)} s` + ($("clipOver").value ? ` over ${$("clipOver").value}` : "") +
+    ($("clipMask").value ? ` through ${$("clipMask").value}` : "");
+  const frame = now => {
+    if (adv.anim !== name) return;
+    const moved = skinned(frames[Math.floor((now - start) / 1000 * fps) % r.frames]);
+    for (const mesh of modelGroup.children) { const a = mesh.geometry.getAttribute("position"); a.array.set(moved); a.needsUpdate = true; }
+    animFrame = requestAnimationFrame(frame);
+  };
+  animFrame = requestAnimationFrame(frame);
+}
+$("clipPlay").onclick = playClip;
+heroHooks.push(() => { clips.hero = null; if (!$("advanced").hidden) loadClips(); });
 
 // --- install ---
 $("install").onclick = async () => {
@@ -1579,7 +1660,10 @@ $("crImport").onclick = async () => {
     const model = await api("creator/import", { hero: cr.hero });
     showModel(model); showTab("model"); $("empty").hidden = true;
     busy(); await doRig("Rigging " + (cr.view.answers.name || "your character") + " on " + cr.view.name + "…");
-    const walk = document.querySelector('[data-anim="walk"]'); if (!$("advanced").hidden && walk) walk.click();
+    if (!$("advanced").hidden) { // play the hero's own run, or the made-up walk without clips
+      await loadClips();
+      if (clips.list.length) await playClip(); else document.querySelector('[data-anim="walk"]').click();
+    }
     log("Your character is rigged on " + cr.view.name + ". Check the poses, then install it.", "ok");
   } catch (e) { crLog(e.message, "bad"); }
   busy();

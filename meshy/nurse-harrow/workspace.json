@@ -321,6 +321,14 @@
     "modelFolder": "models/heroes_wip/nurse/",
     "height": 133.94379806518555,
     "skeleton": "models/heroes_wip/nurse/nurse.vnmskel",
+    "clipFolder": "models/heroes_wip/nurse/clips/",
+    "clips": 333,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",

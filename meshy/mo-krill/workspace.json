@@ -310,6 +310,15 @@
     "modelFolder": "models/heroes_staging/digger/",
     "height": 95.70946741104126,
     "skeleton": "models/heroes_staging/digger/mo_krill.vnmskel",
+    "clipFolder": "models/heroes_staging/digger/clips/",
+    "clips": 148,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "Reload_Haspath",

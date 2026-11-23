@@ -15,7 +15,8 @@ import (
 type AnimSkeleton struct {
 	Bones  []string
 	Parent []int
-	Rest   []BonePose // in the parent's space
+	Rest   []BonePose                    // in the parent's space
+	Masks  map[string]map[string]float64 // bone masks by ID: each bone's weight
 }
 
 // BonePose is one bone's place in its parent's space.
@@ -107,6 +108,7 @@ func LoadAnimSkeleton(raw []byte) (*AnimSkeleton, error) {
 		s.Parent = append(s.Parent, parent)
 		s.Rest = append(s.Rest, pose)
 	}
+	s.Masks = readMasks(v)
 	return s, nil
 }
 

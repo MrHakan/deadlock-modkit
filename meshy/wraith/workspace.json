@@ -310,6 +310,14 @@
     "modelFolder": "models/heroes_wip/wraith/",
     "height": 115.95804977416992,
     "skeleton": "models/heroes_wip/wraith/wraith.vnmskel",
+    "clipFolder": "models/heroes_wip/wraith/clips/",
+    "clips": 195,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "melee_UpperBody",

@@ -304,6 +304,15 @@
     "modelFolder": "models/heroes_wip/priest/",
     "height": 114.04683494567871,
     "skeleton": "models/heroes_wip/priest/priest.vnmskel",
+    "clipFolder": "models/heroes_wip/priest/clips/",
+    "clips": 354,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "ability_knockback_upperbody",
       "UpperBodyReplace_InAir",

@@ -338,6 +338,14 @@
     "modelFolder": "models/heroes_wip/chessmaster/",
     "height": 107.16530172526836,
     "skeleton": "models/heroes_wip/chessmaster/chessmaster.vnmskel",
+    "clipFolder": "models/heroes_wip/chessmaster/clips/",
+    "clips": 305,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "UpperBodyReplace_Turn",
       "UpperBodyReplace_Slide",

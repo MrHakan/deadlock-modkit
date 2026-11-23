@@ -310,6 +310,14 @@
     "modelFolder": "models/heroes_staging/archer/",
     "height": 117.54816818237305,
     "skeleton": "models/heroes_staging/archer/archer.vnmskel",
+    "clipFolder": "models/heroes_staging/archer/clips/",
+    "clips": 222,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "FullBody",
       "melee_UpperBody",

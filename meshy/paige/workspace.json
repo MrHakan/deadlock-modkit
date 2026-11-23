@@ -324,6 +324,15 @@
     "modelFolder": "models/heroes_wip/bookworm/",
     "height": 90.476407289505,
     "skeleton": "models/heroes_wip/bookworm/bookworm.vnmskel",
+    "clipFolder": "models/heroes_wip/bookworm/clips/",
+    "clips": 172,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "shoot_haspath",
       "UpperBodyReplace_InAir",

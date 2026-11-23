@@ -338,6 +338,14 @@
     "modelFolder": "models/heroes_wip/frank/",
     "height": 121.93361377716064,
     "skeleton": "models/heroes_wip/frank/frank.vnmskel",
+    "clipFolder": "models/heroes_wip/frank/clips/",
+    "clips": 166,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",

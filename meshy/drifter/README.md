@@ -25,6 +25,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 | --- | --- | --- |
 | Model | `models/heroes_wip/drifter/drifter.vmdl` | 109 units tall |
 | Animation skeleton | `models/heroes_wip/drifter/drifter.vnmskel` | |
+| Animation clips | `models/heroes_wip/drifter/clips/` | 254 clips |
 | Hero card (hero select, HUD) | `panorama/images/heroes/drifter_card_psd.vtex_c` | 280x380 |
 | Card at low health | `panorama/images/heroes/drifter_card_critical_psd.vtex_c` | 280x380 |
 | Card after a kill | `panorama/images/heroes/drifter_card_gloat_psd.vtex_c` | 280x380 |
@@ -47,8 +48,9 @@ Set the character's description (`concept`), the name and tags shown on the hero
 
 ## Animations
 
-The game plays Drifter's own 0 clips on whatever model is installed, so a replacement is rigged to Drifter's bones rather than given new animations. What the game does to those clips matters:
+The game plays Drifter's own 254 clips on whatever model is installed, so a replacement is rigged to Drifter's bones rather than given new animations. What the game does to those clips matters:
 
+- Clips worth checking a rig against: `weapon_run_n`, `weapon_crouch_idle`, `melee_quick_1`, `melee_hit`.
 - Melee, reloads and casts are laid over the movement through bone masks (`Cast_UpperBody`, `FullBody`, `melee_dash`, `melee_UpperBody`, `Parry_UpperBody`, `Reload_Crouch`, `Reload_Haspath`, `Reload_HasPathCrouch`, `Reload_Idle`, `Reload_InAir`, `Reload_Slide`, `root`, `Throw_UpperBody`, `Turn_LowerBody`, `UpperBodyReplace_AirDash`, `UpperBodyReplace_Asleep`, `UpperBodyReplace_Asleep_Channeling`, `UpperBodyReplace_GroundDash`, `UpperBodyReplace_InAir`, `UpperBodyReplace_Slide`, `UpperBodyReplace_Turn`, `zero`, `Ability_BloodBlast_InAir`, `ability_bloodblast_haspath`, `Ability_Stalker_Claw_HasPath`, `Ability_Stalker_Claw_InAir`, `Claw_R_HasPath`, `Claw_L_HasPath`, `Claw_L_InAir`, `Claw_R_InAir`, `Claws_idle`, `OutOfCombat_Transition`, `Ability_Teleport`, `Claws_HasPath`, `Ability_Darkness_HasPath`, `Ability_Darkness_InAir`, `Claws_idle_crouch`, `Weapon_to_OOC`, `Reload_Idle_ALT`, `Claws_idle_ALT`, `Claw_R_DashAir`, `Run_fidget`): only the upper body takes the clip, so a fit to the whole clip is wrong in game.
 - The hero graph solves both arms by IK towards the gun (`weaponHand_L`, `weaponHand_R`) and the legs towards `leg_*_IKTARGET`, so the arm bones in game are not what the clips say. Body parts that should follow the hero safely use `head`, `neck_0`, the spine, the clavicles, `pelvis` and the leg IK targets.
 - `attachWorld` never moves: weight on it keeps a part steady. `root_motion` is the character's place; its rest pose in the file is turned, which dlmod corrects.

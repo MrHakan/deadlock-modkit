@@ -342,6 +342,14 @@
     "modelFolder": "models/heroes_wip/familiar/",
     "height": 66.45719170570374,
     "skeleton": "models/heroes_wip/familiar/familiar.vnmskel",
+    "clipFolder": "models/heroes_wip/familiar/clips/",
+    "clips": 120,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",

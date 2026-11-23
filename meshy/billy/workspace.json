@@ -304,6 +304,14 @@
     "modelFolder": "models/heroes_wip/punkgoat/",
     "height": 150.43905925750732,
     "skeleton": "models/heroes_wip/punkgoat/punkgoat.vnmskel",
+    "clipFolder": "models/heroes_wip/punkgoat/clips/",
+    "clips": 243,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "melee_UpperBody",
       "Parry_UpperBody",

@@ -310,6 +310,15 @@
     "modelFolder": "models/heroes_wip/geist/",
     "height": 105.3546073436737,
     "skeleton": "models/heroes_staging/ghost/ghost.vnmskel",
+    "clipFolder": "models/heroes_staging/ghost/clips/",
+    "clips": 181,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "Reload_Idle",

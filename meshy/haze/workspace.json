@@ -328,6 +328,14 @@
     "modelFolder": "models/heroes_staging/haze/",
     "height": 95.26768559217453,
     "skeleton": "models/heroes_staging/haze/haze.vnmskel",
+    "clipFolder": "models/heroes_staging/haze/clips/",
+    "clips": 254,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "shoot_R",
       "shoot_L",

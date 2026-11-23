@@ -77,7 +77,7 @@ Drop a `.glb`, `.gltf` or `.obj` file onto `dlmod.exe`, or run `dlmod studio`. T
 2. **Model**: drop the model with its textures (`.png` or `.jpg`), `.mtl` or `.bin` files, or a `.zip` of them. The preview shows it over the hero.
 3. **Fit**: the model is scaled to the hero's height and stands on the hero's spot. Size, turn and offset sliders adjust it; *Z is up* is for `.obj` files exported Z-up.
 4. **Hero parts**: ticked parts stay (the gun by default); the rest are replaced.
-5. **Rig**: *Rig and check* gives every vertex the hero's bones; *Arms up*, *Arms down* and *Legs apart* bend the result to check it.
+5. **Rig**: *Rig and check* gives every vertex the hero's bones; *Arms up*, *Arms down* and *Legs apart* bend the result to check it. Under *Advanced rig*, *Play the game's clip* plays any of the hero's own animation clips on your model. Melee, reloads and casts are laid over a movement clip through the bone mask the game uses for them (picked by the clip's name, and changeable), and the arms reach for the gun and the feet for the ground by two-bone IK, as the hero graph does. The game blends more layers than this, so the preview is close rather than exact.
 6. **Install**: builds the mod *Custom model: <hero>* and installs it. Importing again replaces it.
 
 ![The model studio with Haze's model, exported as .obj with its PNG textures, fitted over Wraith (shown as a ghost)](images/model-studio.png)
@@ -102,7 +102,7 @@ Making a character that is nothing like the hero it replaces taught us how the g
 
 **Animations**
 
-- **Any model plays the hero's clips.** The game never asks what the model looks like: it plays the hero's own animation clips (Ivy has 188) on the hero's skeleton, and the model follows the bones it is weighted to. dlmod reads these clips (AnimGraph2 `.vnmclip`) to test a rig against the poses the game really plays.
+- **Any model plays the hero's clips.** The game never asks what the model looks like: it plays the hero's own animation clips (Ivy has 160) on the hero's skeleton, and the model follows the bones it is weighted to. dlmod reads these clips (AnimGraph2 `.vnmclip`) to test a rig against the poses the game really plays.
 - **Melee and reloads are only half the body.** They are laid over the walking or standing pose through bone masks stored in the skeleton (`melee_UpperBody` gives the arms and head the melee clip fully and the spine 5%, 36% and 70% of it; the hips and legs keep walking). A rig checked against the whole melee clip moves differently in game.
 - **Arms and legs are solved by IK.** Every frame the hero graph pulls both hands to the gun (`weaponHand_L`, `weaponHand_R`) and the feet to their targets (`leg_*_IKTARGET`), so arm bones in game are not where the clips put them. Parts that must follow the hero reliably use the head, neck, spine, clavicles, pelvis and the leg targets.
 - **Some bones never move.** `attachWorld` stays put and is a steady anchor. `root_motion` is the character's place on the ground, but its rest pose in the model file is turned on its side, so vertices weighted to it lie down unless they are turned back, which dlmod does.

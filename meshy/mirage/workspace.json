@@ -310,6 +310,15 @@
     "modelFolder": "models/heroes_staging/mirage_v2/",
     "height": 103.91693878173828,
     "skeleton": "models/heroes_staging/mirage_v2/mirage.vnmskel",
+    "clipFolder": "models/heroes_staging/mirage_v2/clips/",
+    "clips": 201,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Reload_Crouch",
       "Reload_Haspath",

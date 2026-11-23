@@ -346,7 +346,7 @@
     "height": 111.93546390533447,
     "skeleton": "models/heroes_staging/tengu/tengu_v2/dmx/mesh/ivy.vnmskel",
     "clipFolder": "models/heroes_staging/tengu/tengu_v2/clips/",
-    "clips": 188,
+    "clips": 160,
     "keyClips": [
       "weapon_idle",
       "out_of_combat_idle",

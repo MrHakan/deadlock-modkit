@@ -196,6 +196,7 @@ func (s *studio) routes() http.Handler {
 	api("effects/apply", s.effectApply)
 	api("effects/restore", s.effectRestore)
 	s.abilityRoutes(api)
+	s.clipRoutes(api)
 	s.creatorRoutes(api) // the Create tab, when dlmod is built with Meshy (creator.go)
 	return mux
 }

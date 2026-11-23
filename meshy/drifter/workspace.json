@@ -288,6 +288,14 @@
     "modelFolder": "models/heroes_wip/drifter/",
     "height": 108.85841304808855,
     "skeleton": "models/heroes_wip/drifter/drifter.vnmskel",
+    "clipFolder": "models/heroes_wip/drifter/clips/",
+    "clips": 254,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",

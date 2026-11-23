@@ -289,9 +289,7 @@ func gatherHero(game Game, index *source2.VPKIndex, hero string) (*heroAssets, e
 		}
 	}
 	if a.Skeleton != "" {
-		if i := strings.Index(a.Skeleton, "dmx/"); i > 0 {
-			a.ClipFolder = a.Skeleton[:i] + "clips/"
-		}
+		a.ClipFolder = heroClipFolder(index, a.Skeleton)
 		if raw, err := index.Read(a.Skeleton + "_c"); err == nil {
 			a.Masks = maskIDs(raw)
 		}
@@ -300,8 +298,10 @@ func gatherHero(game Game, index *source2.VPKIndex, hero string) (*heroAssets, e
 		have := map[string]bool{}
 		for name := range index.Files {
 			if strings.HasPrefix(name, a.ClipFolder) && strings.HasSuffix(name, ".vnmclip_c") {
-				a.Clips++
-				have[strings.TrimSuffix(strings.TrimPrefix(name, a.ClipFolder), ".vnmclip_c")] = true
+				if clip, ok := clipName(name, a.ClipFolder); ok { // not the derived non-additive copies
+					a.Clips++
+					have[clip] = true
+				}
 			}
 		}
 		for _, c := range keyClipNames {

@@ -310,6 +310,15 @@
     "modelFolder": "models/heroes_staging/bebop/",
     "height": 110.68718057465958,
     "skeleton": "models/heroes_staging/bebop/bebop.vnmskel",
+    "clipFolder": "models/heroes_staging/bebop/clips/",
+    "clips": 207,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",

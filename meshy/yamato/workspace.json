@@ -328,6 +328,15 @@
     "modelFolder": "models/heroes_staging/yamato_v2/",
     "height": 115.90107536315918,
     "skeleton": "models/heroes_wip/yamato/yamato.vnmskel",
+    "clipFolder": "models/heroes_wip/yamato/clips/",
+    "clips": 182,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",
