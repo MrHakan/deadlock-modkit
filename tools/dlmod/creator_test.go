@@ -119,10 +119,12 @@ func (f *fakeMeshy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	game := newFakeGame(t)
+	card := source2.SampleInterfaceImage(28, 38, 3)
 	game.write("game/citadel/pak01_dir.vpk", source2.WriteVPK(map[string][]byte{
-		heroModels["wraith"] + "_c":           source2.SampleHero(),
-		"models/abilities/wraith_card.vmdl_c": source2.SampleHero(), // an ability model, to make one for
-		tagStyles:                             (&source2.Resource{Blocks: []source2.Block{{Type: "DATA", Data: append(make([]byte, 6), ".heroTag {}"...)}}}).Encode(),
+		heroModels["wraith"] + "_c":                     source2.SampleHero(),
+		"models/abilities/wraith_card.vmdl_c":           source2.SampleHero(), // an ability model, to make one for
+		"panorama/images/heroes/wraith_card_psd.vtex_c": card,                 // a card, to make a picture for
+		tagStyles: (&source2.Resource{Blocks: []source2.Block{{Type: "DATA", Data: append(make([]byte, 6), ".heroTag {}"...)}}}).Encode(),
 	}))
 	fake := &fakeMeshy{bodies: map[string]map[string]any{}, kinds: map[string]string{}, looks: map[string]int{}}
 	meshy := httptest.NewServer(fake)
@@ -190,11 +192,16 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 		t.Fatalf("a paid step ran without confirming: %d %s", code, body)
 	}
 
+	var wait func(step string) creatorGen
 	run := func(step, model string) creatorGen {
 		t.Helper()
 		if code, body := call("creator/run", map[string]any{"hero": "wraith", "step": step, "model": model, "confirm": true}, nil); code != 200 {
 			t.Fatalf("run %s: %d %s", step, code, body)
 		}
+		return wait(step)
+	}
+	wait = func(step string) creatorGen {
+		t.Helper()
 		deadline := time.Now().Add(10 * time.Second)
 		for time.Now().Before(deadline) {
 			var p struct {
@@ -265,6 +272,34 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 		!strings.HasPrefix(body["image_url"].(string), "data:image/png;base64,") || !fileExists(filepath.Join(dir, "assets", "prop_wraith_card.glb")) {
 		t.Fatalf("prop model %s %v", fake.kinds[prop.TaskID], body)
 	}
+	// Several pictures at once, after one confirmation of their total price.
+	batch := map[string]any{"hero": "wraith", "steps": []map[string]string{{"step": "card"}}}
+	if code, body := call("creator/batch", batch, nil); code == 200 || !strings.Contains(body, "cost 9 credits together") {
+		t.Fatalf("a batch ran without confirming: %d %s", code, body)
+	}
+	batch["confirm"] = true
+	var started struct{ Started int }
+	if code, body := call("creator/batch", batch, &started); code != 200 || started.Started != 1 {
+		t.Fatalf("batch: %d %s", code, body)
+	}
+	cardGen := wait("card")
+	body = fake.bodies[cardGen.TaskID]
+	if body["remove_background"] != true || strings.Contains(body["prompt"].(string), "green") {
+		t.Fatalf("a card has Meshy remove its background: %v", body)
+	}
+	// An edit changes that picture and takes its place.
+	if code, body := call("creator/run", map[string]any{"hero": "wraith", "step": "card", "edit": cardGen.ID, "prompt": "make the cape red", "confirm": true}, nil); code != 200 {
+		t.Fatalf("edit: %d %s", code, body)
+	}
+	edited := wait("card")
+	body = fake.bodies[edited.TaskID]
+	if edited.EditOf != cardGen.ID || !strings.Contains(body["prompt"].(string), "make the cape red") || fake.kinds[edited.TaskID] != "image-to-image" {
+		t.Fatalf("edit %+v %v", edited, body)
+	}
+	if code, body := call("creator/run", map[string]any{"hero": "wraith", "step": "turnaround", "edit": views.ID, "prompt": "x", "confirm": true}, nil); code == 200 {
+		t.Fatalf("a set of views cannot be edited: %s", body)
+	}
+
 	if code, body := call("creator/install", map[string]any{"hero": "wraith", "effects": true}, nil); code != 200 {
 		t.Fatalf("install: %d %s", code, body)
 	}

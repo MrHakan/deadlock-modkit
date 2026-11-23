@@ -137,6 +137,7 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 .result.kept, .result.kept:hover { border-color: var(--accent); }
 .result .imgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 2px; }
 .result img { width: 100%; display: block; background: repeating-conic-gradient(#25272e 0% 25%, #1c1e24 0% 50%) 50% / 16px 16px; }
+.result .edit { position: absolute; top: 6px; right: 6px; font-size: 11px; padding: 2px 8px; opacity: .85; }
 .result .badge { position: absolute; top: 6px; left: 6px; font-size: 11px; background: var(--accent); color: #1a1407; padding: 1px 8px;
   border-radius: 99px; font-weight: 600; }
 .result .meta { font-size: 11px; color: var(--dim); padding: 5px 7px; }
@@ -439,7 +440,9 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
       <div class="gen-group"><h2>Character</h2><div class="gen-stack" id="stepsCharacter"></div></div>
       <div class="gen-group"><h2>3D model</h2><div class="gen-stack" id="stepsModel"></div>
         <div class="buttons" style="margin-top:10px"><button class="primary" id="crImport" disabled>Open the model on the Model tab and rig it on the hero</button></div></div>
-      <div class="gen-group"><h2>Pictures for the game</h2><div class="pictures-grid" id="stepsPictures"></div></div>
+      <div class="gen-group"><h2>Pictures for the game</h2>
+        <div class="buttons" style="margin-bottom:8px"><button class="primary" id="crBatch" disabled>Make every ready picture</button></div>
+        <div class="pictures-grid" id="stepsPictures"></div></div>
       <div class="gen-group" id="propsGroup"><h2>Ability models</h2>
         <div class="info" style="margin-bottom:8px">Bombs, traps and statues the abilities throw or place: a picture of each from the design sheet, then a 3D model of it.</div>
         <div class="pictures-grid" id="stepsProps"></div></div>
@@ -1623,7 +1626,7 @@ function stepCard(st) {
   card.append(el("div", "results"));
   return card;
 }
-function genTile(g, kept) {
+function genTile(g, kept, st) {
   const tile = el("div", "result" + (g.status === "SUCCEEDED" ? " done" : "") + (kept ? " kept" : "") + (["FAILED", "CANCELED"].includes(g.status) ? " failed" : ""));
   if (kept) tile.append(el("span", "badge", "Kept"));
   if (g.status === "SUCCEEDED") {
@@ -1632,8 +1635,13 @@ function genTile(g, kept) {
     for (const f of pics) { const img = el("img"); img.src = crFile(f); img.loading = "lazy"; imgs.append(img); }
     if (!pics.length) imgs.append(el("div", "wait", "3D model ready"));
     tile.append(imgs);
-    tile.append(el("div", "meta", `${g.model} · ${g.credits} credits` + (kept ? "" : " · click to keep")));
+    tile.append(el("div", "meta", `${g.model} · ${g.credits} credits` + (g.editOf ? " · edited" : "") + (kept ? "" : " · click to keep")));
     if (!kept) tile.onclick = () => chooseGen(g);
+    if (st && crEditable(st)) {
+      const edit = el("button", "edit", "Edit…");
+      edit.onclick = e => { e.stopPropagation(); editGen(st, g); };
+      tile.append(edit);
+    }
   } else if (crRunning(g)) {
     const queued = g.status === "PENDING" || g.progress === 0;
     tile.append(el("div", "wait", queued ? (g.queue ? `In Meshy's queue · ${g.queue} ahead` : "Starting…") : `Making it… ${g.progress}%`));
@@ -1659,7 +1667,7 @@ function updateCreator() {
     card.querySelector(".lock").textContent = !v.concept ? "Describe your character first." : !isReady ? `Keep a ${stepTitle(st.needs)} first.` :
       !v.hasKey ? "Add your Meshy key on the left." : "";
     const results = card.querySelector(".results"); results.innerHTML = "";
-    for (const g of gens) results.append(genTile(g, v.chosen[st.id] === g.id));
+    for (const g of gens) results.append(genTile(g, v.chosen[st.id] === g.id, st));
   }
   const kept = id => { const g = v.generations.find(x => x.id === v.chosen[id]); return g && g.status === "SUCCEEDED"; };
   const pictures = v.steps.filter(s => s.group === "pictures");
@@ -1678,6 +1686,9 @@ function updateCreator() {
   }
   $("crImport").disabled = !(kept("model") || kept("rig"));
   $("crInstall").disabled = keptPictures === 0 && keptProps === 0;
+  const batch = crBatch(), batchCost = batch.reduce((sum, i) => sum + i.price, 0);
+  $("crBatch").disabled = !batch.length || !v.hasKey;
+  $("crBatch").textContent = batch.length ? `Make every ready picture · ${batch.length} steps · ${batchCost} credits` : "Make every ready picture";
 }
 async function runStep(st, model) {
   const price = st.models[model];
@@ -1688,6 +1699,38 @@ async function runStep(st, model) {
     updateCreator(); pollCreator();
     setTimeout(showBalance, 4000);
   } catch (e) { const card = document.querySelector(`.gen[data-step="${st.id}"]`); if (card) card.querySelector(".lock").textContent = e.message; }
+}
+// An edit changes one finished picture as asked; the new picture is kept in its place.
+const crEditable = st => !["turnaround", "model", "rig"].includes(st.id) && !st.id.startsWith("prop_");
+async function editGen(st, g) {
+  const what = prompt(`What should change in this picture? For example: "make the cape red", "no hat".`);
+  if (!what || !what.trim()) return;
+  const price = g.model.startsWith("gpt-image") ? 12 : st.models[g.model];
+  if (!confirm(`Editing it with ${g.model} costs ${price} Meshy credits. Go?`)) return;
+  try {
+    cr.view = { ...cr.view, ...(await api("creator/run", { hero: cr.hero, step: st.id, model: g.model, edit: g.id, prompt: what.trim(), confirm: true })) };
+    updateCreator(); pollCreator(); setTimeout(showBalance, 4000);
+  } catch (e) { const card = document.querySelector(`.gen[data-step="${st.id}"]`); if (card) card.querySelector(".lock").textContent = e.message; }
+}
+// The batch: every picture step that can run now and has nothing kept or running, with the model
+// picked on its card.
+function crBatch() {
+  const v = cr.view; if (!v) return [];
+  const ready = v.ready || {};
+  return v.steps.filter(st => (st.group === "pictures" || st.group === "props") &&
+    (ready[st.id] !== undefined ? ready[st.id] : st.ready) && !v.chosen[st.id] &&
+    !(v.generations || []).some(g => g.step === st.id && crRunning(g)))
+    .map(st => { const model = (cr.edits[st.id] || {}).model || st.default; return { st, model, price: st.models[model] }; });
+}
+async function runBatch() {
+  const items = crBatch(), total = items.reduce((sum, i) => sum + i.price, 0);
+  if (!items.length || !confirm(`Make ${items.length} pictures and models at once for ${total} Meshy credits? Meshy works on them side by side.`)) return;
+  try {
+    const r = await api("creator/batch", { hero: cr.hero, confirm: true, steps: items.map(i => ({ step: i.st.id, model: i.model })) });
+    cr.view = { ...cr.view, ...r };
+    crLog(`Started ${r.started} of ${items.length}.` + (r.problems && r.problems.length ? " " + r.problems.join("; ") : ""), r.problems && r.problems.length ? "bad" : "ok");
+    updateCreator(); pollCreator(); setTimeout(showBalance, 4000);
+  } catch (e) { crLog(e.message, "bad"); }
 }
 async function chooseGen(g) {
   try { cr.view = { ...cr.view, ...(await api("creator/choose", { hero: cr.hero, gen: g.id })) }; updateCreator(); }
@@ -1729,6 +1772,7 @@ $("crImport").onclick = async () => {
   } catch (e) { crLog(e.message, "bad"); }
   busy();
 };
+$("crBatch").onclick = runBatch;
 $("crInstall").onclick = async () => {
   busy("Installing the hero select screen, cards, icons and ability models…");
   try { const r = await api("creator/install", { hero: cr.hero, effects: $("crEffects").checked }); for (const m of r.messages) crLog(m, "ok"); }

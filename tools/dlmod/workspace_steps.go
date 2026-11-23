@@ -15,6 +15,9 @@ const characterMark = "{{CHARACTER}}"
 
 const sheetFile = "assets/design_sheet.png"
 
+// greenBackground ends the prompts of pictures with a background that dlmod keys out.
+const greenBackground = " On a flat pure green (#00FF00) background, no green on the character, no text."
+
 // fileSlug names an asset after an ability: "Entangling Thorns" -> entangling_thorns.
 func fileSlug(name string) string { return strings.Join(words(name), "_") }
 
@@ -89,7 +92,7 @@ func buildWorkspace(a *heroAssets) *workspace {
 		}
 		add(workspaceStep{
 			ID: c.id, Title: c.title, Tool: "meshy_image_to_image", AIModel: "nano-banana-pro", Credits: 9, Aspect: closestAspect(f.Width, f.Height), Reference: sheetFile,
-			Prompt: fmt.Sprintf(c.prompt, characterMark) + " On a flat pure green (#00FF00) background, no green on the character, no text.",
+			Prompt: fmt.Sprintf(c.prompt, characterMark) + greenBackground,
 			Output: "assets/" + c.id + ".png", Kind: "image", Target: f.Path, Size: describeSize(f),
 			Note: "dlmod apply keys out the green background.",
 		})

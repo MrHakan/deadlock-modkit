@@ -106,6 +106,7 @@ type creatorGen struct {
 	Credits  int      `json:"credits"`
 	Prompt   string   `json:"prompt"`
 	Created  int64    `json:"created"`
+	EditOf   string   `json:"editOf,omitempty"` // the result this one changes
 }
 
 func (g *creatorGen) running() bool {
@@ -150,6 +151,17 @@ func creatorSteps(w *workspace) []workspaceStep {
 			model.Tool, model.AIModel, model.Credits, model.Reference = "meshy_image_to_3d", "meshy-t2.5", 15, picture.Output
 			model.Note = "Made from the picture with smart topology, then put in place of the game's model; dlmod pins it to the prop's root bone."
 			out = append(out, picture, model)
+		case s.Kind == "image":
+			// Cards and portraits stand on transparency: Meshy removes the background itself, so
+			// the prompt need not ask for a green one to key out (and the character may be green).
+			options := map[string]any{"remove_background": true}
+			for k, v := range s.Options {
+				options[k] = v
+			}
+			s.Options = options
+			s.Prompt = strings.Replace(s.Prompt, greenBackground, " On a plain light background, no text.", 1)
+			s.Note = "Meshy removes the background."
+			out = append(out, s)
 		default:
 			out = append(out, s)
 		}
@@ -373,6 +385,7 @@ type creatorRequest struct {
 	Answers creatorAnswers `json:"answers"`
 	Concept string         `json:"concept"`
 	Key     string         `json:"key"`
+	Edit    string         `json:"edit"`    // run: change this earlier result instead
 	Effects bool           `json:"effects"` // install: recolour the hero's effects with the character's colours
 }
 
@@ -459,71 +472,173 @@ func dataURI(file string) (string, error) {
 	return "data:" + mime + ";base64," + base64.StdEncoding.EncodeToString(data), nil
 }
 
-// creatorRun starts one generation. It costs credits, so the page has to confirm it.
+// editableSteps take an edit: steps with one picture as their result.
+func editable(step workspaceStep) bool {
+	return step.ID != "turnaround" && step.ID != "model" && step.ID != "rig" && !strings.HasPrefix(step.ID, "prop_")
+}
+
+// creatorRun starts one step, or an edit of one of its pictures, after the price is confirmed.
 func (s *studio) creatorRun(r *http.Request) (any, error) {
 	req, c, err := s.creatorRequest(r)
 	if err != nil {
 		return nil, err
 	}
-	c.mu.Lock()
-	step, ok := c.step(req.Step)
-	if !ok {
-		c.mu.Unlock()
-		return nil, fmt.Errorf("there is no step %q", req.Step)
+	price, err := c.price(req.Step, req.Model, req.Edit)
+	if err != nil {
+		return nil, err
 	}
-	model := req.Model
+	if !req.Confirm {
+		return nil, fmt.Errorf("this costs %d credits; confirm it first", price)
+	}
+	if _, err := s.startStep(c, req.Step, req.Model, req.Prompt, req.Edit); err != nil {
+		return nil, err
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	return c.view(s), nil
+}
+
+// creatorBatch starts several steps at once, after their total price is confirmed; Meshy works
+// on them side by side.
+func (s *studio) creatorBatch(r *http.Request) (any, error) {
+	var req struct {
+		Hero    string `json:"hero"`
+		Confirm bool   `json:"confirm"`
+		Steps   []struct {
+			Step  string `json:"step"`
+			Model string `json:"model"`
+		} `json:"steps"`
+	}
+	if err := readJSON(r, &req); err != nil {
+		return nil, err
+	}
+	c, err := s.session(req.Hero)
+	if err != nil {
+		return nil, err
+	}
+	if len(req.Steps) == 0 {
+		return nil, errors.New("there is no step to make")
+	}
+	total := 0
+	for _, item := range req.Steps {
+		price, err := c.price(item.Step, item.Model, "")
+		if err != nil {
+			return nil, err
+		}
+		total += price
+	}
+	if !req.Confirm {
+		return nil, fmt.Errorf("these %d steps cost %d credits together; confirm it first", len(req.Steps), total)
+	}
+	var problems []string
+	started := 0
+	for _, item := range req.Steps {
+		if _, err := s.startStep(c, item.Step, item.Model, "", ""); err != nil {
+			problems = append(problems, item.Step+": "+err.Error())
+			continue
+		}
+		started++
+	}
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	view := c.view(s)
+	view["started"], view["problems"] = started, problems
+	return view, nil
+}
+
+// price is what a step (or an edit of one of its pictures) costs with a model.
+func (c *creatorSession) price(stepID, model, edit string) (int, error) {
+	c.mu.Lock()
+	defer c.mu.Unlock()
+	step, ok := c.step(stepID)
+	if !ok {
+		return 0, fmt.Errorf("there is no step %q", stepID)
+	}
 	if model == "" {
 		model = creatorModels(step)[0]
 	}
 	kind := creatorKind(step, model)
-	price := meshyPrice(kind, model)
-	if !req.Confirm {
-		c.mu.Unlock()
-		return nil, fmt.Errorf("this costs %d credits; confirm it first", price)
+	if edit != "" {
+		kind = "image-to-image"
 	}
-	prompt := strings.TrimSpace(req.Prompt)
-	if prompt == "" {
-		prompt = filled(step.Prompt, c.work)
+	return meshyPrice(kind, model), nil
+}
+
+// startStep sends one step to Meshy and follows it. With edit, the picture of that earlier result
+// is changed as the prompt says instead, and the result counts as the step's.
+func (s *studio) startStep(c *creatorSession, stepID, model, prompt, edit string) (*creatorGen, error) {
+	c.mu.Lock()
+	step, ok := c.step(stepID)
+	if !ok {
+		c.mu.Unlock()
+		return nil, fmt.Errorf("there is no step %q", stepID)
+	}
+	if model == "" {
+		model = creatorModels(step)[0]
+	}
+	kind := creatorKind(step, model)
+	var base *creatorGen
+	prompt = strings.TrimSpace(prompt)
+	if edit != "" {
+		if base = c.gen(edit); base == nil || base.Status != "SUCCEEDED" || base.Step != stepID || len(base.Files) == 0 {
+			c.mu.Unlock()
+			return nil, errors.New("only a finished picture of this step can be edited")
+		}
+		if !editable(step) {
+			c.mu.Unlock()
+			return nil, fmt.Errorf("the %s step cannot be edited; make another instead", stepID)
+		}
+		if prompt == "" {
+			c.mu.Unlock()
+			return nil, errors.New("say what to change")
+		}
+		kind = "image-to-image"
+		prompt = "Change this picture: " + prompt + ". Keep everything else exactly as it is: the character, the style, the framing and the background."
+	} else {
+		if prompt == "" {
+			prompt = filled(step.Prompt, c.work)
+		}
+		if needs := creatorNeeds(step.ID); needs != "" {
+			if base = c.kept(needs); base == nil {
+				c.mu.Unlock()
+				return nil, fmt.Errorf("keep a result of the %s step first", needs)
+			}
+		}
 	}
 	if strings.Contains(prompt, conceptMark) || strings.Contains(prompt, characterMark) {
 		c.mu.Unlock()
 		return nil, errors.New("describe your character first: the prompt still has a blank in it")
 	}
-	body := map[string]any{}
-	needs := creatorNeeds(step.ID)
-	var base *creatorGen
-	if needs != "" {
-		if base = c.kept(needs); base == nil {
-			c.mu.Unlock()
-			return nil, fmt.Errorf("keep a result of the %s step first", needs)
+	price := meshyPrice(kind, model)
+	var files []string
+	if base != nil {
+		for _, f := range base.Files {
+			files = append(files, filepath.Join(c.dir, "gen", f))
 		}
-	}
-	files := func(g *creatorGen) []string {
-		var out []string
-		for _, f := range g.Files {
-			out = append(out, filepath.Join(c.dir, "gen", f))
-		}
-		return out
 	}
 	c.mu.Unlock()
 
+	body := map[string]any{}
 	switch kind {
 	case "text-to-image":
 		body = map[string]any{"ai_model": model, "prompt": prompt, "aspect_ratio": orDefault(step.Aspect, "16:9")}
 	case "image-to-image":
-		ref, err := dataURI(files(base)[0])
+		ref, err := dataURI(files[0])
 		if err != nil {
 			return nil, err
 		}
 		body = map[string]any{"ai_model": model, "prompt": prompt, "reference_image_urls": []string{ref}}
-		if step.ID == "turnaround" {
+		if step.ID == "turnaround" && edit == "" {
 			body["generate_multi_view"] = true
 		} else {
 			body["aspect_ratio"] = orDefault(step.Aspect, "1:1")
 		}
+		if step.Options["remove_background"] == true {
+			body["remove_background"] = true
+		}
 	case "multi-image-to-3d":
 		var refs []string
-		for i, f := range files(base) {
+		for i, f := range files {
 			if i == 4 {
 				break
 			}
@@ -536,7 +651,7 @@ func (s *studio) creatorRun(r *http.Request) (any, error) {
 		body = map[string]any{"image_urls": refs, "ai_model": model, "texture_model": "meshy-7", "should_texture": true,
 			"texture_resolution": "2k", "target_formats": []string{"glb"}}
 	case "image-to-3d":
-		ref, err := dataURI(files(base)[0])
+		ref, err := dataURI(files[0])
 		if err != nil {
 			return nil, err
 		}
@@ -560,8 +675,8 @@ func (s *studio) creatorRun(r *http.Request) (any, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 	g := &creatorGen{
-		ID: fmt.Sprintf("%s-%d", step.ID, time.Now().UnixMilli()), Step: step.ID, Kind: kind, Model: model, TaskID: taskID,
-		Status: "PENDING", Credits: price, Prompt: prompt, Created: time.Now().Unix(),
+		ID: fmt.Sprintf("%s-%d", step.ID, time.Now().UnixNano()), Step: step.ID, Kind: kind, Model: model, TaskID: taskID,
+		Status: "PENDING", Credits: price, Prompt: prompt, Created: time.Now().Unix(), EditOf: edit,
 	}
 	if kind == "rigging" || kind == "multi-image-to-3d" || kind == "image-to-3d" {
 		g.Prompt = "" // the 3D steps work from pictures
@@ -571,7 +686,7 @@ func (s *studio) creatorRun(r *http.Request) (any, error) {
 		return nil, err
 	}
 	go s.follow(c, g)
-	return c.view(s), nil
+	return g, nil
 }
 
 func orDefault(value, fallback string) string {
@@ -647,7 +762,8 @@ func (s *studio) follow(c *creatorSession, g *creatorGen) {
 			g.Status, g.Error = "FAILED", "the result could not be downloaded: "+err.Error()
 		} else {
 			g.Status, g.Progress, g.Files, g.Thumb = "SUCCEEDED", 100, files, thumb
-			if c.kept(g.Step) == nil { // the first result of a step is kept until another is picked
+			// The first result of a step is kept until another is picked, and an edit replaces what it edits.
+			if kept := c.kept(g.Step); kept == nil || (g.EditOf != "" && kept.ID == g.EditOf) {
 				c.choose(g)
 			}
 		}
@@ -897,6 +1013,7 @@ func (s *studio) creatorRoutes(api func(string, func(*http.Request) (any, error)
 	api("creator/balance", s.creatorBalance)
 	api("creator/answers", s.creatorAnswer)
 	api("creator/run", s.creatorRun)
+	api("creator/batch", s.creatorBatch)
 	api("creator/poll", s.creatorPoll)
 	api("creator/choose", s.creatorChoose)
 	api("creator/file", s.creatorFile)
