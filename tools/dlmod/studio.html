@@ -146,6 +146,13 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .8s ease; }
 .bar.queue i { width: 30%; background: var(--accent-dim); animation: queue 1.5s ease-in-out infinite; }
 @keyframes queue { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+.checks { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.checks th, .checks td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+.checks th { color: var(--dim); font-weight: 500; }
+.checks tr.bad td { color: #ff8a7a; }
+.checks tr.meh td { color: #f0c96a; }
+.suggestion { margin-top: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.suggestion button { margin-top: 6px; }
 .abilities { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
 .ability .head { display: flex; gap: 10px; align-items: center; }
 .ability .slot { width: 22px; height: 22px; border-radius: 50%; background: #23262e; display: grid; place-items: center; font-size: 11px; color: var(--dim); flex: none; }
@@ -334,6 +341,15 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <div class="buttons" id="bendButtons" hidden>
       <button data-bend="0,0">Bind pose</button><button data-bend="-45,0">Arms up</button>
       <button data-bend="40,0">Arms down</button><button data-bend="0,15">Legs apart</button>
+    </div>
+    <div id="tuning" hidden>
+      <label class="info" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="tuneSteady"> Steady body: the body follows the hips, not the spine's lean and twist</label>
+      <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="tuneNoArmIK"> Arms without IK: arms follow the shoulders, not the gun</label>
+      <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="tuneUsual"> Bind the body in the hero's usual pose (its lean while moving)</label>
+      <div class="buttons"><button id="rigCheck">Check against the game's clips</button></div>
+      <div class="info" id="rigCheckInfo"></div>
+      <table class="checks" id="rigCheckTable" hidden></table>
+      <div id="rigSuggestions"></div>
     </div>
   </section>
 
@@ -544,7 +560,8 @@ function drawModel(positions, colors) {
 function options() {
   return { keep: state.keep, scale: +$("scale").value, yaw: +$("yaw").value, zup: state.zup,
     offset: [+$("offx").value, +$("offy").value, +$("offz").value], pose: null,
-    jointMap: adv.joints, pins: adv.pins, paint: paintStrokes() };
+    jointMap: adv.joints, pins: adv.pins, paint: paintStrokes(),
+    steadyBody: $("tuneSteady").checked, noArmIK: $("tuneNoArmIK").checked, usualPose: $("tuneUsual").checked };
 }
 // The advanced rig tools' state; the edits go with every rig and install (options above).
 const adv = { joints: {}, pins: {}, paint: new Map(), tool: "pose", anim: "", picked: -1 };
@@ -709,7 +726,7 @@ async function doRig(text) {
     const p = result.pose;
     $("rigInfo").textContent = `Rigged in ${result.seconds.toFixed(1)} s. The hero was bent ${p.Arms > 0 ? "arms down" : p.Arms < 0 ? "arms up" : "arms as they are"} (${p.Arms}°)` +
       `${p.Legs ? `, legs ${p.Legs > 0 ? "apart" : "together"} (${p.Legs}°)` : ""} to match. Shown in the hero's bind pose; try the poses below.`;
-    $("bendButtons").hidden = false;
+    $("bendButtons").hidden = false; $("tuning").hidden = false;
     setupAdvanced(result);
     showTool(adv.tool);
   } catch (e) { $("rigInfo").textContent = e.message; }
@@ -1037,6 +1054,42 @@ async function playClip() {
   animFrame = requestAnimationFrame(frame);
 }
 $("clipPlay").onclick = playClip;
+
+// The rig check: the server skins the rig through the hero's clips and reports what strains.
+const tuneBoxes = { steadyBody: "tuneSteady", noArmIK: "tuneNoArmIK", usualPose: "tuneUsual" };
+async function checkRig() {
+  $("rigCheckInfo").textContent = "Playing the hero's clips on the rig…"; $("rigCheckTable").hidden = true; $("rigSuggestions").innerHTML = "";
+  busy("Checking the rig against the game's clips…");
+  try {
+    const r = await api("rig/check", options());
+    const pct = x => (x * 100).toFixed(x < 0.1 ? 1 : 0) + "%";
+    const t = $("rigCheckTable"); t.innerHTML = "<tr><th>Clip</th><th>Yours</th><th>Hero's</th><th>Most in</th></tr>";
+    for (const row of r.rows) {
+      const tr = document.createElement("tr");
+      const name = row.Clip + (row.Over ? ` over ${row.Over}` : "");
+      for (const text of [name, pct(row.stretched), pct(row.hero.stretched), (row.topBones || []).join(", ")]) {
+        const td = document.createElement("td"); td.textContent = text; tr.append(td);
+      }
+      const extra = row.stretched - row.hero.stretched;
+      if (extra > 0.04) tr.className = "bad"; else if (extra > 0.02) tr.className = "meh";
+      t.append(tr);
+    }
+    t.hidden = false;
+    $("rigCheckInfo").textContent = r.verdict + " The columns give the share of the surface stretched or squashed 1.6 times or more in the clip's worst moment, for your model and for the hero's own body.";
+    for (const s of r.suggestions || []) {
+      const d = document.createElement("div"); d.className = "info suggestion"; d.textContent = s.text;
+      if (s.option && tuneBoxes[s.option]) {
+        const b = document.createElement("button"); b.textContent = "Turn it on and check again";
+        b.onclick = async () => { $(tuneBoxes[s.option]).checked = true; await doRig(); await checkRig(); };
+        d.append(document.createElement("br"), b);
+      }
+      $("rigSuggestions").append(d);
+    }
+  } catch (e) { $("rigCheckInfo").textContent = e.message; }
+  busy();
+}
+$("rigCheck").onclick = checkRig;
+for (const id of Object.values(tuneBoxes)) $(id).onchange = () => { if (state.rig) doRig(); };
 heroHooks.push(() => { clips.hero = null; if (!$("advanced").hidden) loadClips(); });
 
 // --- install ---

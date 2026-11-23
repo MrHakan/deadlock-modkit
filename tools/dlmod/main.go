@@ -41,7 +41,7 @@ Usage:
                                dlmod extract models/heroes_staging/haze
   dlmod studio                 open the model studio in your browser: drop a .glb, .gltf or .obj
                                on a hero, check the fit and the rig, install
-  dlmod model <hero> <file> [-keep gun] [-move gun=X,Y,Z] [-scale 1] [-yaw 0] [-zup]
+  dlmod model <hero> <file> [-keep gun] [-move gun=X,Y,Z] [-scale 1] [-yaw 0] [-zup] [-steady] [-no-arm-ik] [-usual-pose]
   dlmod image <game image> <picture> [...]  put pictures over game images (panorama/images/...vtex_c)
   dlmod text KEY=VALUE [...]           change lines of the English hero text (KEY= restores one)
   dlmod select <hero> [bg=PIC] [name=TEXT] [logo=SVG] [tags=A,B,C] [colors=#rrggbb,...] [scene=hide]
@@ -73,6 +73,9 @@ Options:
   -scale N    for model: size on top of fitting the hero's height
   -yaw DEG    for model: turn the model around before fitting it
   -zup        for model: the file is Z-up (as Blender's .obj exports can be)
+  -steady     for model: the body follows the hips, not the spine's lean and twist
+  -no-arm-ik  for model: the arms follow the shoulders instead of being pulled to the gun by IK
+  -usual-pose for model: bind the body in the hero's usual pose over its clips (a model made upright)
   -skip LIST  for paint: ability prop names to skip (comma-separated, e.g. ivy_thornbomb_model)
   -preview DIR  for paint: write before/after PNG contact sheets into DIR without installing
 `
@@ -88,6 +91,7 @@ type options struct {
 	material       map[string]string     // imported parts drawn with a game material, by part name
 	scale, yaw     float64
 	zup            bool
+	tuning         studioOptions // for model: -steady, -no-arm-ik, -usual-pose
 }
 
 func parseArgs(argv []string) ([]string, options, error) {
@@ -170,6 +174,12 @@ func parseArgs(argv []string) ([]string, options, error) {
 			opts.plain = true
 		case "zup":
 			opts.zup = true
+		case "steady":
+			opts.tuning.SteadyBody = true
+		case "no-arm-ik":
+			opts.tuning.NoArmIK = true
+		case "usual-pose":
+			opts.tuning.UsualPose = true
 		case "h", "help":
 			opts.help = true
 		case "v", "version":

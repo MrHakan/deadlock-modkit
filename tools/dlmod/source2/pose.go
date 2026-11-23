@@ -782,6 +782,7 @@ func (m *Model) AutoRig(fitted *ImportedMesh, opts ImportOptions, pose *Pose, ma
 		bind.Normals[i] = [3]float32{float32(n[0]), float32(n[1]), float32(n[2])}
 	}
 	out.Mesh = bind
+	tuneRig(out, skeleton, opts.Tuning)
 	return out, nil
 }
 

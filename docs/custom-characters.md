@@ -80,13 +80,21 @@ Drop a `.glb`, `.gltf` or `.obj` file onto `dlmod.exe`, or run `dlmod studio`. T
 5. **Rig**: *Rig and check* gives every vertex the hero's bones; *Arms up*, *Arms down* and *Legs apart* bend the result to check it. Under *Advanced rig*, *Play the game's clip* plays any of the hero's own animation clips on your model. Melee, reloads and casts are laid over a movement clip through the bone mask the game uses for them (picked by the clip's name, and changeable), and the arms reach for the gun and the feet for the ground by two-bone IK, as the hero graph does. The game blends more layers than this, so the preview is close rather than exact.
 6. **Install**: builds the mod *Custom model: <hero>* and installs it. Importing again replaces it.
 
+**Checking the rig against the game.** After rigging, *Check against the game's clips* plays the hero's run, idle, a melee and a reload laid over the movement, a cast and a jump on your model, the way the game plays them, and measures how much of its surface stretches or squashes to 1.6 times its length or more. Each clip shows your model next to the hero's own body, which strains a little too, so only what your rig adds counts. It also tells when parts sink into the ground or swing behind the hero, where the third-person camera sits. Three tuning options answer what the game does to a hero's bones:
+
+- **Steady body**: the body follows the hips only, not the spine's lean and twist. For a round or rigid body; a humanoid body usually needs its spine.
+- **Arms without IK**: the arms follow the shoulders instead of being pulled to the gun every frame. For arms that hold something else, or none.
+- **Bind the body in the usual pose**: the hero leans while moving (Haze by 40°); a model made standing upright is bound in that lean, so it stays upright in play.
+
+The check tries the first two options on your model and suggests one only when it lowers the stretching, with the numbers; the third it suggests when the hero leans more than 12°.
+
 ![The model studio with Haze's model, exported as .obj with its PNG textures, fitted over Wraith (shown as a ghost)](images/model-studio.png)
 
 *Rig and check* then *Arms up*: the model lifts its arms with the guns in its hands, while Wraith's ghost stays in its bind pose. dlmod matched the model's pose first (Wraith's arms 24° lower, legs 10° wider) and copied the weights from Wraith's body.
 
 ![The rig check: Haze's model with its arms lifted by Wraith's skeleton](images/model-studio-rig.png)
 
-Without the browser: `dlmod model wraith model.glb`, with `-keep gun,cards` (parts to keep), `-scale 1.05`, `-yaw 90` or `-zup`. `-keep none` drops the hero's own gun, and `-move muzzle_flash=X,Y,Z` moves where shots and muzzle flashes start, for a character that holds something else.
+Without the browser: `dlmod model wraith model.glb`, with `-keep gun,cards` (parts to keep), `-scale 1.05`, `-yaw 90` or `-zup`. `-keep none` drops the hero's own gun, and `-move muzzle_flash=X,Y,Z` moves where shots and muzzle flashes start, for a character that holds something else. `-steady`, `-no-arm-ik` and `-usual-pose` are the rig tuning options below.
 
 How it works:
 

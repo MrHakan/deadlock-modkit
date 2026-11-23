@@ -298,4 +298,5 @@ func (s *studio) clipFrames(r *http.Request) (any, error) {
 func (s *studio) clipRoutes(api func(string, func(*http.Request) (any, error))) {
 	api("clips", s.clipList)
 	api("clip", s.clipFrames)
+	api("rig/check", s.rigCheck)
 }

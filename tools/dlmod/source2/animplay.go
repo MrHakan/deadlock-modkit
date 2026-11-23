@@ -180,3 +180,58 @@ func (s *AnimSkeleton) solveTwoBone(model []mat34, upper, lower, end, target int
 	c = position(model[end])
 	s.turnSubtree(model, upper, cross(sub(c, a), sub(t, a)), angleBetween(sub(c, a), sub(t, a)), a)
 }
+
+// AveragePose is the mean of several poses, bone by bone: the hero's usual pose over its clips.
+func (s *AnimSkeleton) AveragePose(poses [][]BonePose) []BonePose {
+	out := make([]BonePose, len(s.Bones))
+	copy(out, s.Rest)
+	if len(poses) == 0 {
+		return out
+	}
+	for i := range s.Bones {
+		var q [4]float64
+		var p [3]float64
+		var scale float64
+		n := 0
+		for _, pose := range poses {
+			if i >= len(pose) {
+				continue
+			}
+			r := pose[i].Rotation
+			if q[0]*r[0]+q[1]*r[1]+q[2]*r[2]+q[3]*r[3] < 0 { // the same turn either way round
+				r = [4]float64{-r[0], -r[1], -r[2], -r[3]}
+			}
+			for k := 0; k < 4; k++ {
+				q[k] += r[k]
+			}
+			for k := 0; k < 3; k++ {
+				p[k] += pose[i].Position[k]
+			}
+			scale += pose[i].Scale
+			n++
+		}
+		length := math.Sqrt(q[0]*q[0] + q[1]*q[1] + q[2]*q[2] + q[3]*q[3])
+		if n == 0 || length == 0 {
+			continue
+		}
+		for k := 0; k < 4; k++ {
+			q[k] /= length
+		}
+		for k := 0; k < 3; k++ {
+			p[k] /= float64(n)
+		}
+		out[i] = BonePose{Rotation: q, Position: p, Scale: scale / float64(n)}
+	}
+	return out
+}
+
+// ByName gives a pose's model-space matrices (as PlayPose returns them) by bone name.
+func (s *AnimSkeleton) ByName(model [][12]float64) map[string][12]float64 {
+	out := make(map[string][12]float64, len(model))
+	for i, m := range model {
+		if i < len(s.Bones) {
+			out[s.Bones[i]] = m
+		}
+	}
+	return out
+}

@@ -224,6 +224,16 @@ func modelCommand(ui *UI, store *Store, game Game, args []string, opts options) 
 		return fmt.Errorf("%s's model: %v", heroDisplayName(id), err)
 	}
 	importOpts := source2.ImportOptions{Keep: map[string]bool{}, Scale: opts.scale, Yaw: opts.yaw, ZUp: opts.zup}
+	importOpts.Tuning = source2.RigTuning{SteadyBody: opts.tuning.SteadyBody, NoArmIK: opts.tuning.NoArmIK}
+	if opts.tuning.UsualPose {
+		h, err := (&studio{game: game}).heroAnimation(id)
+		if err == nil {
+			importOpts.Tuning.UsualPose, err = h.usualPose()
+		}
+		if err != nil {
+			return fmt.Errorf("the hero's usual pose could not be read: %v", err)
+		}
+	}
 	if len(opts.material) > 0 {
 		importOpts.Materials = map[string]string{}
 		for part, mat := range opts.material {

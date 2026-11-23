@@ -49,3 +49,21 @@ func TestHeroClipFolderAndList(t *testing.T) {
 		}
 	}
 }
+
+// The rig check plays the movement, standing, a melee and a reload over the movement, a cast and
+// a jump, each through the mask the game would use.
+func TestRigCheckClips(t *testing.T) {
+	clips := []string{"weapon_run_n", "weapon_idle", "melee_hit", "melee_quick_1", "reload_crouch_idle", "reload_stand_idle", "ability_sleep_dagger", "jump_forced"}
+	masks := []string{"melee_UpperBody", "Reload_Idle", "Cast_UpperBody"}
+	got := rigCheckClips(clips, masks)
+	want := []checkClip{
+		{Clip: "weapon_run_n"}, {Clip: "weapon_idle"},
+		{Clip: "melee_quick_1", Over: "weapon_run_n", Mask: "melee_UpperBody"},
+		{Clip: "reload_stand_idle", Over: "weapon_idle", Mask: "Reload_Idle"},
+		{Clip: "ability_sleep_dagger", Over: "weapon_idle", Mask: "Cast_UpperBody"},
+		{Clip: "jump_forced"},
+	}
+	if !reflect.DeepEqual(got, want) {
+		t.Fatalf("got %+v\nwant %+v", got, want)
+	}
+}
