@@ -424,6 +424,7 @@ func (s *studio) creatorBatch(r *http.Request) (any, error) {
 	var req struct {
 		Hero    string `json:"hero"`
 		Confirm bool   `json:"confirm"`
+		Total   int    `json:"total"` // the price the page showed, which must still be the price
 		Steps   []struct {
 			Step  string `json:"step"`
 			Model string `json:"model"`
@@ -447,17 +448,17 @@ func (s *studio) creatorBatch(r *http.Request) (any, error) {
 		}
 		total += price
 	}
-	if !req.Confirm {
-		return nil, fmt.Errorf("these %d steps cost %d credits together; confirm it first", len(req.Steps), total)
+	if !req.Confirm || req.Total != total {
+		return nil, fmt.Errorf("these %d steps cost %d credits together; confirm that price first", len(req.Steps), total)
 	}
-	var problems []string
-	started := 0
+	// Each step that starts is charged; one that fails is reported and not tried again.
+	var problems, started []string
 	for _, item := range req.Steps {
 		if _, err := s.startStep(c, item.Step, item.Model, "", ""); err != nil {
 			problems = append(problems, item.Step+": "+err.Error())
 			continue
 		}
-		started++
+		started = append(started, item.Step)
 	}
 	c.mu.Lock()
 	defer c.mu.Unlock()

@@ -94,14 +94,27 @@ func tuneRig(r *Rigged, skeleton *Skeleton, t RigTuning) {
 		if len(rebind) == 0 {
 			return
 		}
+		// Bones below the body (clavicles, arms, the head's own) take their body bone's correction,
+		// so the shoulders do not tear when the chest is rebound; the legs keep their bind.
+		rebindOf := func(name string) mat34 {
+			b, ok := skeleton.index[name]
+			for ok && b >= 0 {
+				n := skeleton.Names[b]
+				if strings.HasPrefix(n, "leg_") || strings.HasPrefix(n, "ankle") || strings.HasPrefix(n, "ball") {
+					break
+				}
+				if m, found := rebind[n]; found {
+					return m
+				}
+				b = skeleton.Parent[b]
+			}
+			return identity34()
+		}
 		for i, list := range r.Skin {
 			var p, n [3]float64
 			var total float64
 			for _, bw := range list {
-				m, ok := rebind[bw.Bone]
-				if !ok {
-					m = identity34()
-				}
+				m := rebindOf(bw.Bone)
 				w := float64(bw.Weight)
 				q := m.apply(vec64(r.Mesh.Positions[i]))
 				var nn [3]float64
@@ -131,7 +144,7 @@ func tuneRig(r *Rigged, skeleton *Skeleton, t RigTuning) {
 
 // RigStrain is how much a rig suffers in a set of poses.
 type RigStrain struct {
-	Stretched  float64        `json:"stretched"`  // share of edges 1.6 times longer or shorter than at rest, in the worst pose
+	Stretched  float64        `json:"stretched"`  // share of the surface (its edges, by length) 1.6 times longer or shorter than at rest, in the worst pose
 	Worst      float64        `json:"worst"`      // the largest change of an edge's length, as a ratio (2 = twice as long or half as long)
 	WorstFrame int            `json:"worstFrame"` // the pose with the most stretched edges
 	Bones      map[string]int `json:"bones"`      // stretched edges in the worst pose, by the bone that moves their ends most
@@ -227,24 +240,25 @@ func (r *Rigged) Strain(skeleton *Skeleton, poses []map[string][12]float64) RigS
 			}
 			moved[i] = q
 		}
-		stretched, considered := 0, 0
+		// The share is of the surface's length, not of its edges: a dense mesh is not worse for it.
+		stretched, considered := 0.0, 0.0
 		bones := map[string]int{}
 		for i, e := range edges {
 			if rest[i] < shortest { // seams and tiny details stretch by huge ratios over nothing
 				continue
 			}
-			considered++
+			considered += rest[i]
 			ratio := distance(moved[e.a], moved[e.b]) / rest[i]
 			if ratio < 1 {
 				ratio = 1 / math.Max(ratio, 0.01) // shorter counts as much as longer
 			}
 			out.Worst = math.Max(out.Worst, ratio)
 			if ratio > 1.6 {
-				stretched++
+				stretched += rest[i]
 				bones[dominant[e.a]]++
 			}
 		}
-		if share := float64(stretched) / float64(max(considered, 1)); share > worstShare {
+		if share := stretched / math.Max(considered, 1e-9); share > worstShare {
 			worstShare, out.Stretched, out.WorstFrame, out.Bones = share, share, f, bones
 		}
 		pelvis := [3]float64{}

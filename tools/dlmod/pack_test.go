@@ -76,12 +76,12 @@ func TestCharacterPackRoundTrip(t *testing.T) {
 	if got := zipNames(t, data); !reflect.DeepEqual(got, want) {
 		t.Fatalf("pack holds %v\nwant %v", got, want)
 	}
-	_, files, err := readPack(data)
+	z, _, err := openPack(data)
 	if err != nil {
 		t.Fatal(err)
 	}
 	out := filepath.Join(t.TempDir(), "unpacked")
-	if err := unpackTo(files, out); err != nil {
+	if err := unpackTo(z, out); err != nil {
 		t.Fatal(err)
 	}
 	for name, content := range map[string]string{"gen/sheet.png": "sheet", "gen/rigged.glb": "rigged", "gen/plain.glb": "plain", "assets/model.glb": "rigged"} {
@@ -98,7 +98,7 @@ func TestCharacterPackRoundTrip(t *testing.T) {
 }
 
 func TestPackRefusesStrangeFiles(t *testing.T) {
-	for _, name := range []string{"../evil.txt", "assets/../../evil.txt", "/abs.txt", "dlmod.exe", "assets" + string(rune(92)) + "x.png"} { // 92: a backslash
+	for _, name := range []string{"../evil.txt", "assets/../../evil.txt", "/abs.txt", "dlmod.exe", "assets/x:y.png", "assets/nul", "gen/./a.png", "assets" + string(rune(92)) + "x.png"} { // 92: a backslash
 		var buf bytes.Buffer
 		z := zip.NewWriter(&buf)
 		for _, n := range []string{"pack.json", "workspace.json", name} {
@@ -110,7 +110,7 @@ func TestPackRefusesStrangeFiles(t *testing.T) {
 			}
 		}
 		z.Close()
-		if _, _, err := readPack(buf.Bytes()); err == nil {
+		if _, _, err := openPack(buf.Bytes()); err == nil {
 			t.Errorf("%q was accepted", name)
 		}
 	}
@@ -150,5 +150,64 @@ func TestUnpackCharacterSavesTheCurrentOne(t *testing.T) {
 	writeWorkspace(empty, &workspace{Hero: "haze", Game: &heroAssets{ID: "haze", Name: "Haze"}})
 	if worthKeeping(empty) {
 		t.Error("an untouched workspace was worth keeping")
+	}
+}
+
+// A pack's workspace.json and creator.json are checked like its file names: a step or a result
+// pointing outside the folder is refused or dropped.
+func TestPackRefusesStrangePathsInside(t *testing.T) {
+	dir := filepath.Join(t.TempDir(), "haze")
+	characterFolder(t, dir, "Rook")
+	raw, _ := os.ReadFile(filepath.Join(dir, "creator.json"))
+	var state creatorState
+	json.Unmarshal(raw, &state)
+	state.Gens[0].Files = []string{"../../outside.png"} // the kept design sheet
+	raw, _ = json.Marshal(state)
+	os.WriteFile(filepath.Join(dir, "creator.json"), raw, 0o644)
+	data, _, err := exportPack(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	z, _, err := openPack(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+	out := filepath.Join(t.TempDir(), "x", "haze")
+	if err := unpackTo(z, out); err != nil {
+		t.Fatal(err)
+	}
+	if fileExists(filepath.Join(out, "..", "outside.png")) || fileExists(filepath.Join(filepath.Dir(out), "..", "outside.png")) {
+		t.Fatal("a result wrote outside the folder")
+	}
+	json.Unmarshal(mustRead(t, filepath.Join(out, "creator.json")), &state)
+	for _, g := range state.Gens {
+		if g.ID == "s1" {
+			t.Fatal("the result with a strange file name was kept")
+		}
+	}
+
+	w, _ := readWorkspace(dir)
+	w.Steps[0].Output = "../escape.png"
+	writeWorkspace(dir, w)
+	if _, err := readWorkspace(dir); err == nil {
+		t.Fatal("a step writing outside assets/ was accepted")
+	}
+}
+
+func mustRead(t *testing.T, file string) []byte {
+	t.Helper()
+	data, err := os.ReadFile(file)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
+}
+
+func TestLocalPath(t *testing.T) {
+	for p, want := range map[string]bool{"assets/a.png": true, "gen/x.glb": true, "a/../b": false, "../a": false, "/a": false,
+		"assets/nul.png": false, "assets/COM1": false, "assets/com10": true, "c:/x": false, "a" + string(rune(92)) + "b": false, "": false, "./a": false} { // 92: a backslash
+		if got := localPath(p); got != want {
+			t.Errorf("localPath(%q) = %v", p, got)
+		}
 	}
 }

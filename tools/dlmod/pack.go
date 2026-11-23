@@ -22,11 +22,12 @@ import (
 // (game/dlmod/characters/saved/<hero>).
 
 const (
-	packExt       = ".dlmodchar"
-	packFormat    = 1
-	packMaxBytes  = 2 << 30   // everything in a pack, unpacked
-	packMaxFile   = 512 << 20 // one file in a pack, unpacked
-	packManifestN = "pack.json"
+	packExt        = ".dlmodchar"
+	packFormat     = 1
+	packMaxBytes   = 1 << 30   // everything in a pack, unpacked
+	packMaxFile    = 512 << 20 // one file in a pack, unpacked
+	packMaxEntries = 4096
+	packManifestN  = "pack.json"
 )
 
 type packManifest struct {
@@ -183,82 +184,160 @@ func exportPack(dir string) ([]byte, packManifest, error) {
 	return out.Bytes(), manifest, nil
 }
 
-// readPack checks a pack and returns its manifest and files. Every name must be one of a pack's
-// own (no absolute paths, no "..", nothing outside assets/ and gen/), and the sizes are bounded.
-func readPack(data []byte) (packManifest, map[string][]byte, error) {
+// localPath reports whether a slash-separated path stays inside its folder on every system: not
+// absolute, no "..", no backslash, no drive or stream colon, no Windows device name.
+func localPath(p string) bool {
+	if p == "" || strings.ContainsAny(p, `\:`) || path.Clean(p) != p || path.IsAbs(p) || !filepath.IsLocal(filepath.FromSlash(p)) {
+		return false
+	}
+	for _, part := range strings.Split(p, "/") {
+		if part == ".." || windowsDevice(part) { // packs travel between systems: refuse NUL on Linux too
+			return false
+		}
+	}
+	return true
+}
+
+// windowsDevice reports whether a file name is one Windows keeps for a device (NUL, COM1...).
+func windowsDevice(name string) bool {
+	base, _, _ := strings.Cut(strings.ToUpper(name), ".")
+	switch base {
+	case "CON", "PRN", "AUX", "NUL":
+		return true
+	}
+	return len(base) == 4 && (strings.HasPrefix(base, "COM") || strings.HasPrefix(base, "LPT")) && base[3] >= '0' && base[3] <= '9'
+}
+
+// packEntryAllowed reports whether a name in a pack is one of a pack's own files.
+func packEntryAllowed(name string) bool {
+	if !localPath(name) {
+		return false
+	}
+	for _, top := range packTop {
+		if name == top || (strings.HasSuffix(top, "/") && strings.HasPrefix(name, top) && len(name) > len(top)) {
+			return true
+		}
+	}
+	return false
+}
+
+// openPack checks a pack's list of files and reads its manifest, unpacking nothing else: every
+// name must be one of a pack's own (pack.json, the workspace, assets/, gen/), and the number of
+// files and their sizes are bounded.
+func openPack(data []byte) (*zip.Reader, packManifest, error) {
 	var manifest packManifest
 	z, err := zip.NewReader(bytes.NewReader(data), int64(len(data)))
 	if err != nil {
-		return manifest, nil, fmt.Errorf("not a character pack: %v", err)
+		return nil, manifest, fmt.Errorf("not a character pack: %v", err)
 	}
-	files := map[string][]byte{}
-	var total int64
+	if len(z.File) > packMaxEntries {
+		return nil, manifest, errors.New("the pack holds too many files")
+	}
+	var total uint64
+	var info, work *zip.File
 	for _, f := range z.File {
 		if f.FileInfo().IsDir() {
 			continue
 		}
-		name := f.Name
-		clean := path.Clean(name)
-		allowed := false
-		for _, top := range packTop {
-			if clean == top || (strings.HasSuffix(top, "/") && strings.HasPrefix(clean, top) && len(clean) > len(top)) {
-				allowed = true
-			}
-		}
-		if !allowed || clean != name || strings.Contains(name, "\\") || strings.Contains(name, "..") || path.IsAbs(name) {
-			return manifest, nil, fmt.Errorf("the pack holds a file dlmod does not unpack: %q", name)
+		if !packEntryAllowed(f.Name) {
+			return nil, manifest, fmt.Errorf("the pack holds a file dlmod does not unpack: %q", f.Name)
 		}
 		if f.UncompressedSize64 > packMaxFile {
-			return manifest, nil, fmt.Errorf("%s is too large", name)
+			return nil, manifest, fmt.Errorf("%s is too large", f.Name)
 		}
-		r, err := f.Open()
-		if err != nil {
-			return manifest, nil, err
+		if total += f.UncompressedSize64; total > packMaxBytes {
+			return nil, manifest, errors.New("the pack is too large")
 		}
-		content, err := io.ReadAll(io.LimitReader(r, packMaxFile+1))
-		r.Close()
-		if err != nil {
-			return manifest, nil, fmt.Errorf("%s: %v", name, err)
+		switch f.Name {
+		case packManifestN:
+			info = f
+		case "workspace.json":
+			work = f
 		}
-		if total += int64(len(content)); len(content) > packMaxFile || total > packMaxBytes {
-			return manifest, nil, errors.New("the pack is too large")
-		}
-		files[name] = content
 	}
-	if err := json.Unmarshal(files[packManifestN], &manifest); err != nil {
-		return manifest, nil, errors.New("not a character pack: pack.json is missing or broken")
+	if info == nil {
+		return nil, manifest, errors.New("not a character pack: pack.json is missing")
+	}
+	r, err := info.Open()
+	if err != nil {
+		return nil, manifest, err
+	}
+	raw, err := io.ReadAll(io.LimitReader(r, 1<<16))
+	r.Close()
+	if err != nil || json.Unmarshal(raw, &manifest) != nil {
+		return nil, manifest, errors.New("not a character pack: pack.json is broken")
 	}
 	if manifest.Format > packFormat {
-		return manifest, nil, fmt.Errorf("the pack was made by a newer dlmod (format %d); update dlmod", manifest.Format)
+		return nil, manifest, fmt.Errorf("the pack was made by a newer dlmod (format %d); update dlmod", manifest.Format)
 	}
-	hero, err := findHero(manifest.Hero)
-	if err != nil {
-		return manifest, nil, err
+	if manifest.Hero, err = findHero(manifest.Hero); err != nil {
+		return nil, manifest, err
 	}
-	manifest.Hero = hero
-	if files["workspace.json"] == nil {
-		return manifest, nil, errors.New("the pack has no workspace.json")
+	if work == nil {
+		return nil, manifest, errors.New("the pack has no workspace.json")
 	}
-	return manifest, files, nil
+	return z, manifest, nil
 }
 
-// unpackTo writes a pack's files into a new folder, and puts the creator's kept files back in
-// gen/ from assets/ where the pack left them out.
-func unpackTo(files map[string][]byte, dir string) error {
-	if fileExists(dir) {
-		return fmt.Errorf("%s is already there", dir)
-	}
-	for name, data := range files {
-		if name == packManifestN {
+// packManifestOf reads a pack's manifest, after checking its list of files.
+func packManifestOf(data []byte) (packManifest, error) {
+	_, manifest, err := openPack(data)
+	return manifest, err
+}
+
+// extractPack writes a checked pack's files into a new folder, one at a time, holding the sizes
+// to what the pack declared.
+func extractPack(z *zip.Reader, dir string) error {
+	var total int64
+	for _, f := range z.File {
+		if f.FileInfo().IsDir() || f.Name == packManifestN {
 			continue
 		}
-		target := filepath.Join(dir, filepath.FromSlash(name))
+		if !packEntryAllowed(f.Name) { // openPack refused these already
+			return fmt.Errorf("bad file %q", f.Name)
+		}
+		target := filepath.Join(dir, filepath.FromSlash(f.Name))
 		if err := os.MkdirAll(filepath.Dir(target), 0o755); err != nil {
 			return err
 		}
-		if err := os.WriteFile(target, data, 0o644); err != nil {
+		r, err := f.Open()
+		if err != nil {
 			return err
 		}
+		out, err := os.Create(target)
+		if err != nil {
+			r.Close()
+			return err
+		}
+		n, err := io.Copy(out, io.LimitReader(r, packMaxFile+1))
+		r.Close()
+		if closeErr := out.Close(); err == nil {
+			err = closeErr
+		}
+		if err != nil {
+			return fmt.Errorf("%s: %v", f.Name, err)
+		}
+		if total += n; n > packMaxFile || uint64(n) > f.UncompressedSize64 || total > packMaxBytes {
+			return errors.New("the pack is larger than it says")
+		}
+	}
+	return nil
+}
+
+// unpackTo writes a checked pack into a new folder, and puts the creator's kept files back in
+// gen/ from assets/ where the pack left them out. The names in the pack's creator.json and
+// workspace.json are checked like the pack's own: a result whose files would lie outside gen/
+// or assets/ is dropped.
+func unpackTo(z *zip.Reader, dir string) error {
+	if fileExists(dir) {
+		return fmt.Errorf("%s is already there", dir)
+	}
+	if err := extractPack(z, dir); err != nil {
+		return err
+	}
+	w, err := readWorkspace(dir) // refuses steps that point outside the folder
+	if err != nil {
+		return err
 	}
 	data, err := os.ReadFile(filepath.Join(dir, "creator.json"))
 	if err != nil {
@@ -268,22 +347,28 @@ func unpackTo(files map[string][]byte, dir string) error {
 	if err := json.Unmarshal(data, &state); err != nil {
 		return fmt.Errorf("creator.json: %v", err)
 	}
-	w, err := readWorkspace(dir)
-	if err != nil {
-		return err
-	}
 	steps := creatorSteps(w)
+	genName := func(f string) bool { return localPath(f) && path.Base(f) == f }
 	var gens []*creatorGen
 	for _, g := range state.Gens {
-		whole := true
-		for i, f := range g.Files {
+		whole := g != nil && len(g.Files) > 0
+		for i := 0; whole && i < len(g.Files); i++ {
+			f := g.Files[i]
+			if !genName(f) {
+				whole = false
+				break
+			}
 			own := filepath.Join(dir, "gen", f)
 			if fileExists(own) {
 				continue
 			}
 			asset := keptAsset(steps, g, i)
+			if !localPath(asset) || !strings.HasPrefix(asset, "assets/") {
+				whole = false
+				break
+			}
 			copied, err := os.ReadFile(filepath.Join(dir, filepath.FromSlash(asset)))
-			if asset == "" || err != nil {
+			if err != nil {
 				whole = false
 				break
 			}
@@ -295,7 +380,7 @@ func unpackTo(files map[string][]byte, dir string) error {
 		if !whole {
 			continue
 		}
-		if g.Thumb != "" && !fileExists(filepath.Join(dir, "gen", g.Thumb)) {
+		if g.Thumb != "" && (!genName(g.Thumb) || !fileExists(filepath.Join(dir, "gen", g.Thumb))) {
 			g.Thumb = ""
 		}
 		gens = append(gens, g)
@@ -331,7 +416,7 @@ func savePack(game Game, dir string) (string, packManifest, error) {
 	for n := 2; fileExists(file); n++ {
 		// The same character saved again replaces its pack; another one of the same name gets a number.
 		if old, err := os.ReadFile(file); err == nil {
-			if m, _, err := readPack(old); err == nil && m.Name == manifest.Name {
+			if m, err := packManifestOf(old); err == nil && m.Name == manifest.Name {
 				break
 			}
 		}
@@ -362,7 +447,7 @@ func worthKeeping(dir string) bool {
 // unpackCharacter makes a pack the hero's current character in the creator. A character already
 // there is saved as a pack first, so switching characters loses nothing.
 func unpackCharacter(game Game, data []byte) (string, packManifest, string, error) {
-	manifest, files, err := readPack(data)
+	z, manifest, err := openPack(data)
 	if err != nil {
 		return "", manifest, "", err
 	}
@@ -375,16 +460,26 @@ func unpackCharacter(game Game, data []byte) (string, packManifest, string, erro
 	}
 	staging := dir + ".unpacking"
 	os.RemoveAll(staging)
-	if err := unpackTo(files, staging); err != nil {
+	if err := unpackTo(z, staging); err != nil {
 		os.RemoveAll(staging)
 		return "", manifest, "", err
 	}
-	if err := os.RemoveAll(dir); err != nil {
-		return "", manifest, "", err
+	// The old folder moves aside before the new one moves in, and is deleted only then: a file
+	// Windows holds open can stop a move, but never leaves the character half deleted.
+	old := dir + ".old"
+	os.RemoveAll(old)
+	if fileExists(dir) {
+		if err := os.Rename(dir, old); err != nil {
+			os.RemoveAll(staging)
+			return "", manifest, "", fmt.Errorf("the character there could not be moved aside (is a file of it open?): %v", err)
+		}
 	}
 	if err := os.Rename(staging, dir); err != nil {
+		os.Rename(old, dir)
+		os.RemoveAll(staging)
 		return "", manifest, "", err
 	}
+	os.RemoveAll(old)
 	return dir, manifest, saved, nil
 }
 
@@ -453,7 +548,7 @@ func applyPack(ui *UI, store *Store, game Game, file string, opts options) error
 	if err != nil {
 		return err
 	}
-	_, files, err := readPack(data)
+	z, _, err := openPack(data)
 	if err != nil {
 		return err
 	}
@@ -463,7 +558,7 @@ func applyPack(ui *UI, store *Store, game Game, file string, opts options) error
 	}
 	defer os.RemoveAll(tmp)
 	dir := filepath.Join(tmp, "character")
-	if err := unpackTo(files, dir); err != nil {
+	if err := unpackTo(z, dir); err != nil {
 		return err
 	}
 	return applyCommand(ui, store, game, []string{dir}, opts)

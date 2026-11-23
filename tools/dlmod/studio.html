@@ -1743,9 +1743,9 @@ async function runBatch() {
   const items = crBatch(), total = items.reduce((sum, i) => sum + i.price, 0);
   if (!items.length || !confirm(`Make ${items.length} pictures and models at once for ${total} Meshy credits? Meshy works on them side by side.`)) return;
   try {
-    const r = await api("creator/batch", { hero: cr.hero, confirm: true, steps: items.map(i => ({ step: i.st.id, model: i.model })) });
+    const r = await api("creator/batch", { hero: cr.hero, confirm: true, total, steps: items.map(i => ({ step: i.st.id, model: i.model })) });
     cr.view = { ...cr.view, ...r };
-    crLog(`Started ${r.started} of ${items.length}.` + (r.problems && r.problems.length ? " " + r.problems.join("; ") : ""), r.problems && r.problems.length ? "bad" : "ok");
+    crLog(`Started ${r.started.length} of ${items.length}: ${r.started.join(", ") || "none"}.` + (r.problems && r.problems.length ? " " + r.problems.join("; ") : ""), r.problems && r.problems.length ? "bad" : "ok");
     updateCreator(); pollCreator(); setTimeout(showBalance, 4000);
   } catch (e) { crLog(e.message, "bad"); }
 }

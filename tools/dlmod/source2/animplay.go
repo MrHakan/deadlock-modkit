@@ -178,7 +178,17 @@ func (s *AnimSkeleton) solveTwoBone(model []mat34, upper, lower, end, target int
 	}
 	s.turnSubtree(model, lower, axis, have-want, b)
 	c = position(model[end])
-	s.turnSubtree(model, upper, cross(sub(c, a), sub(t, a)), angleBetween(sub(c, a), sub(t, a)), a)
+	aim := cross(sub(c, a), sub(t, a))
+	if dot(aim, aim) < 1e-12 { // the end points straight away from the target: any side will do
+		aim = axis
+		if dot(aim, aim) < 1e-12 || math.Abs(dot(normalize(aim), normalize(sub(c, a)))) > 0.99 {
+			aim = cross(sub(c, a), [3]float64{0, 0, 1})
+			if dot(aim, aim) < 1e-12 {
+				aim = cross(sub(c, a), [3]float64{1, 0, 0})
+			}
+		}
+	}
+	s.turnSubtree(model, upper, aim, angleBetween(sub(c, a), sub(t, a)), a)
 }
 
 // AveragePose is the mean of several poses, bone by bone: the hero's usual pose over its clips.

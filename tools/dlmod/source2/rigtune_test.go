@@ -68,3 +68,30 @@ func TestRigStrain(t *testing.T) {
 		t.Fatalf("at rest nothing stretches: %+v", calm)
 	}
 }
+
+// Bound in the usual pose, the arms move with the chest they hang from, and the legs stay.
+func TestTuneRigUsualPoseCarriesTheArmsNotTheLegs(t *testing.T) {
+	s := &Skeleton{
+		Names:  []string{"root_motion", "pelvis", "spine_3", "clavicle_L", "hand_L", "leg_upper_L"},
+		Parent: []int{-1, 0, 1, 2, 3, 1},
+		World:  []mat34{identity34(), identity34(), identity34(), identity34(), identity34(), identity34()},
+		index:  map[string]int{},
+	}
+	for i, n := range s.Names {
+		s.index[n] = i
+	}
+	lean := rotationAbout([3]float64{0, 1, 0}, 30, [3]float64{})
+	r := &Rigged{Mesh: &ImportedMesh{Positions: [][3]float32{{0, 0, 10}, {0, 0, 10}, {0, 0, 10}}},
+		Skin: [][]BoneWeight{{{"spine_3", 1}}, {{"hand_L", 1}}, {{"leg_upper_L", 1}}}}
+	tuneRig(r, s, RigTuning{UsualPose: map[string][12]float64{"spine_3": [12]float64(lean)}})
+	chest, hand, leg := r.Mesh.Positions[0], r.Mesh.Positions[1], r.Mesh.Positions[2]
+	if chest != hand {
+		t.Errorf("the hand did not follow the chest: %v %v", chest, hand)
+	}
+	if chest == ([3]float32{0, 0, 10}) {
+		t.Error("the chest was not rebound")
+	}
+	if leg != ([3]float32{0, 0, 10}) {
+		t.Errorf("the leg moved: %v", leg)
+	}
+}

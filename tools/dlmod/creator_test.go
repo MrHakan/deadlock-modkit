@@ -277,9 +277,13 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	if code, body := call("creator/batch", batch, nil); code == 200 || !strings.Contains(body, "cost 9 credits together") {
 		t.Fatalf("a batch ran without confirming: %d %s", code, body)
 	}
-	batch["confirm"] = true
-	var started struct{ Started int }
-	if code, body := call("creator/batch", batch, &started); code != 200 || started.Started != 1 {
+	batch["confirm"], batch["total"] = true, 8
+	if code, body := call("creator/batch", batch, nil); code == 200 || !strings.Contains(body, "confirm that price") {
+		t.Fatalf("a batch ran at a price the page did not show: %d %s", code, body)
+	}
+	batch["total"] = 9
+	var started struct{ Started []string }
+	if code, body := call("creator/batch", batch, &started); code != 200 || len(started.Started) != 1 || started.Started[0] != "card" {
 		t.Fatalf("batch: %d %s", code, body)
 	}
 	cardGen := wait("card")
@@ -322,7 +326,7 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	var pack bytes.Buffer
 	pack.ReadFrom(response.Body)
 	response.Body.Close()
-	if manifest, _, err := readPack(pack.Bytes()); err != nil || manifest.Name != "Rook" || manifest.Hero != "wraith" {
+	if manifest, err := packManifestOf(pack.Bytes()); err != nil || manifest.Name != "Rook" || manifest.Hero != "wraith" {
 		t.Fatalf("download: %+v %v", manifest, err)
 	}
 	var opened struct{ Opened string }

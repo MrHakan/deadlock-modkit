@@ -154,3 +154,22 @@ func TestFrameHeroSceneByName(t *testing.T) {
 		t.Fatalf("model %q", m)
 	}
 }
+
+// Entity angles are pitch, yaw, roll: pitching forward 90° (Source's positive pitch looks down)
+// turns +X to -Z, and a yaw of 90° turns +X to +Y.
+func TestTurnByAngles(t *testing.T) {
+	near := func(a, b [3]float64) bool {
+		return math.Abs(a[0]-b[0]) < 1e-9 && math.Abs(a[1]-b[1]) < 1e-9 && math.Abs(a[2]-b[2]) < 1e-9
+	}
+	for _, c := range []struct{ angles, v, want [3]float64 }{
+		{[3]float64{90, 0, 0}, [3]float64{1, 0, 0}, [3]float64{0, 0, -1}},
+		{[3]float64{0, 90, 0}, [3]float64{1, 0, 0}, [3]float64{0, 1, 0}},
+		{[3]float64{0, 0, 90}, [3]float64{0, 1, 0}, [3]float64{0, 0, 1}},
+		// Roll first, then pitch, then yaw: (0,1,0) rolled to (0,0,1), pitched to (1,0,0), yawed to (0,1,0).
+		{[3]float64{90, 90, 90}, [3]float64{0, 1, 0}, [3]float64{0, 1, 0}},
+	} {
+		if got := turnByAngles(c.v, c.angles); !near(got, c.want) {
+			t.Errorf("angles %v turn %v to %v, want %v", c.angles, c.v, got, c.want)
+		}
+	}
+}

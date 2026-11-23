@@ -175,9 +175,12 @@ func buildHeroSelect(p prompter, game Game, all map[string]selectSettings) (map[
 			if where.Scene == "" {
 				p.say("%s has no 3D hero select scene in this game build; it is left as it is.", heroDisplayName(hero))
 			} else {
-				scene, err := framedScene(game, hero, filepath.Join(game.Citadel(), filepath.FromSlash(where.Scene)))
+				scene, scale, err := framedScene(game, hero, filepath.Join(game.Citadel(), filepath.FromSlash(where.Scene)))
 				if err != nil {
 					return nil, fmt.Errorf("%s: %v", where.Scene, err)
+				}
+				if scale <= frameMin+1e-9 || scale >= frameMax-1e-9 {
+					p.say("%s's model is shown at %.1f times its size on the hero select screen, the most dlmod changes it; it may not fill the hero's place.", heroDisplayName(hero), scale)
 				}
 				files[where.Scene] = scene
 			}
@@ -243,6 +246,9 @@ func tagColorRules(hero string, colors []string) string {
 	return sb.String()
 }
 
+// frameMin and frameMax bound how much scene=frame resizes a model.
+const frameMin, frameMax = 0.4, 2.5
+
 // sceneFrame fits a replacement's bounds into the hero's: the scale that keeps it within the
 // hero's height and width (between 0.4 and 2.5 times), and the offset, in the model's space, that
 // stands it on the hero's feet at the hero's centre.
@@ -254,7 +260,7 @@ func sceneFrame(heroLo, heroHi, modelLo, modelHi [3]float64) (float64, [3]float6
 	mh, mw := size(modelLo, modelHi)
 	scale := 1.0
 	if mh > 0 && mw > 0 {
-		scale = math.Max(0.4, math.Min(2.5, math.Min(hh/mh, hw/mw)))
+		scale = math.Max(frameMin, math.Min(frameMax, math.Min(hh/mh, hw/mw)))
 	}
 	var offset [3]float64
 	for k := 0; k < 2; k++ {
@@ -266,29 +272,29 @@ func sceneFrame(heroLo, heroHi, modelLo, modelHi [3]float64) (float64, [3]float6
 
 // framedScene reads a hero select scene and returns it with the switched-on replacement of the
 // hero's model fitted into the hero's place, and the hero's own decor hidden.
-func framedScene(game Game, hero, path string) ([]byte, error) {
+func framedScene(game Game, hero, path string) ([]byte, float64, error) {
 	index, err := openHeroModels(game)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	modelPath, err := heroModelPath(index, hero)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	original, err := index.Read(modelPath + "_c")
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	mods, err := newModReader(game)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	replacement, _, err := mods.read(modelPath + "_c")
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	if replacement == nil {
-		return nil, fmt.Errorf("no switched-on mod replaces %s's model: install one first (dlmod model or the studio), or use scene=hide", heroDisplayName(hero))
+		return nil, 0, fmt.Errorf("no switched-on mod replaces %s's model: install one first (dlmod model or the studio), or use scene=hide", heroDisplayName(hero))
 	}
 	bounds := func(raw []byte) ([3]float64, [3]float64, error) {
 		m, err := source2.LoadModel(raw)
@@ -299,27 +305,27 @@ func framedScene(game Game, hero, path string) ([]byte, error) {
 	}
 	heroLo, heroHi, err := bounds(original)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	modelLo, modelHi, err := bounds(replacement)
 	if err != nil {
-		return nil, fmt.Errorf("the installed model: %v", err)
+		return nil, 0, fmt.Errorf("the installed model: %v", err)
 	}
 	scale, offset := sceneFrame(heroLo, heroHi, modelLo, modelHi)
 	scene, err := source2.OpenVPKFiltered(path, func(string) bool { return true })
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
 	files := map[string][]byte{}
 	for name := range scene.Files {
 		if files[name], err = scene.Read(name); err != nil {
-			return nil, err
+			return nil, 0, err
 		}
 	}
 	if _, err := source2.FrameHeroScene(files, modelPath, scale, offset); err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return source2.WriteVPK(files), nil
+	return source2.WriteVPK(files), scale, nil
 }
 
 // hiddenScene reads a hero select scene and returns it rebuilt with the hero and props hidden.

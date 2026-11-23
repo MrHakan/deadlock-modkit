@@ -79,6 +79,16 @@ func readWorkspace(dir string) (*workspace, error) {
 	if err := json.Unmarshal(data, &w); err != nil {
 		return nil, fmt.Errorf("workspace.json: %v", err)
 	}
+	// A workspace can come from someone else (a character pack): its steps may only name files
+	// in its own assets/ and files of the game.
+	for _, s := range w.Steps {
+		if s.Output != "" && (!localPath(s.Output) || !strings.HasPrefix(s.Output, "assets/")) {
+			return nil, fmt.Errorf("workspace.json: step %s writes %q, outside the folder's assets/", s.ID, s.Output)
+		}
+		if s.Target != "" && !localPath(s.Target) {
+			return nil, fmt.Errorf("workspace.json: step %s replaces %q, which is not a game file", s.ID, s.Target)
+		}
+	}
 	return &w, nil
 }
 

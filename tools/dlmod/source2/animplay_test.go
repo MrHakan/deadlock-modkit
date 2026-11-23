@@ -19,7 +19,7 @@ func testArm(target [3]float64) *AnimSkeleton {
 func at(m [12]float64) [3]float64 { return [3]float64{m[3], m[7], m[11]} }
 
 func TestTwoBoneIKReachesTheTarget(t *testing.T) {
-	for _, target := range [][3]float64{{12, 8, 0}, {0, 5, 15}, {-6, -6, 3}} {
+	for _, target := range [][3]float64{{12, 8, 0}, {0, 5, 15}, {-6, -6, 3}, {-15, 0, 0}} { // the last one straight behind
 		s := testArm(target)
 		model := s.PlayPose(nil, true)
 		if d := distance(at(model[3]), target); d > 1e-6 {

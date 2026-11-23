@@ -34,7 +34,7 @@ func (s *studio) savedPacks(hero string) []savedPack {
 		if err != nil {
 			continue
 		}
-		manifest, _, err := readPack(data)
+		manifest, err := packManifestOf(data)
 		if err != nil {
 			continue
 		}
@@ -132,7 +132,7 @@ func (s *studio) creatorPackOpen(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	if manifest, _, err := readPack(data); err != nil || manifest.Hero != hero {
+	if manifest, err := packManifestOf(data); err != nil || manifest.Hero != hero {
 		return nil, fmt.Errorf("%s is not a character for %s", name, heroDisplayName(hero))
 	}
 	return s.switchTo(hero, data)
@@ -156,7 +156,7 @@ func (s *studio) creatorPackUpload(r *http.Request) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	manifest, _, err := readPack(data)
+	manifest, err := packManifestOf(data)
 	if err != nil {
 		return nil, err
 	}
