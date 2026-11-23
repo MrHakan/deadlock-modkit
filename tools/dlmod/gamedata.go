@@ -218,13 +218,13 @@ func heroAbilityKeys(index *source2.VPKIndex, hero string) (keys [4]string, icon
 	return keys, icons, names, ""
 }
 
-// shownValue leaves out values the game does not show: empty, zero or negative ("-1" marks an
-// unused value), with or without a unit such as "0m".
+// shownValue leaves out values that are not in use: empty, zero, or -1 (which marks an unused
+// value), with or without a unit such as "0m". Other negative values, such as slows, are shown.
 func shownValue(value string) bool {
 	number := strings.TrimRightFunc(value, func(r rune) bool { return r < '0' || r > '9' })
 	parsed, err := strconv.ParseFloat(number, 64)
 	if err != nil {
 		return value != ""
 	}
-	return parsed > 0
+	return parsed != 0 && parsed != -1
 }

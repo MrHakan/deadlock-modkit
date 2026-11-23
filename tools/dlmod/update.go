@@ -36,6 +36,9 @@ const projectURL = "https://gitlab.com/mrhakan/deadlock-modkit"
 // server.
 var releasesURL = "https://gitlab.com/api/v4/projects/89335829/releases?per_page=100"
 
+// releasesPerPage matches per_page in releasesURL; maxReleasePages bounds how far back to look.
+const releasesPerPage, maxReleasePages = 100, 20
+
 var hudAssetName = regexp.MustCompile(`^deadlock-counter-intelligence-(\d+)-hud-en\.zip$`)
 
 // releaseLink is one file attached to a GitLab release. direct_asset_url is the release's
@@ -79,7 +82,11 @@ func (r release) link(name string) (releaseLink, bool) {
 	return releaseLink{}, false
 }
 
-// allowedURL accepts HTTPS addresses, and plain HTTP only for this computer (tests).
+// allowLocalHTTP lets plain HTTP to this computer through: for the tests' stand-in servers, and
+// for a stand-in for Meshy set with DLMOD_MESHY_API. Downloads otherwise need HTTPS.
+var allowLocalHTTP = os.Getenv("DLMOD_MESHY_API") != ""
+
+// allowedURL accepts HTTPS addresses, and plain HTTP to this computer when allowLocalHTTP is set.
 func allowedURL(address string) error {
 	parsed, err := url.Parse(address)
 	if err != nil {
@@ -93,7 +100,7 @@ func allowedURL(address string) error {
 
 func localHTTP(parsed *url.URL) bool {
 	host := parsed.Hostname()
-	return parsed.Scheme == "http" && (host == "127.0.0.1" || host == "localhost")
+	return allowLocalHTTP && parsed.Scheme == "http" && (host == "127.0.0.1" || host == "localhost")
 }
 
 // statusError is a download the server answered with an HTTP error.
@@ -282,22 +289,34 @@ func (s *Store) updateHUD(p prompter) error {
 	if build == 0 {
 		return errors.New("the game build is unknown because game/citadel/steam.inf is missing")
 	}
-	var listing bytes.Buffer
-	if err := fetch(releasesURL, &listing); err != nil {
-		var status *statusError
-		if errors.As(err, &status) && status.Status == 404 {
-			return fmt.Errorf("GitLab did not find the project's releases (%s). The project or its releases may not be public", projectURL)
-		}
-		if errors.As(err, &status) && status.Status == 429 {
-			return errors.New("GitLab is limiting requests right now; try again in a few minutes")
-		}
-		return err
-	}
+	// GitLab lists 100 releases a page, newest first; older pages are read only until one has a
+	// HUD for this build (a game update brings a release a day, so an old build's may be far back).
 	var releases []release
-	if err := json.Unmarshal(listing.Bytes(), &releases); err != nil {
-		return fmt.Errorf("unexpected answer from GitLab: %v", err)
+	var found release
+	var asset releaseLink
+	var newest int
+	var newestTag string
+	for page := 1; page <= maxReleasePages; page++ {
+		var listing bytes.Buffer
+		if err := fetch(releasesURL+"&page="+strconv.Itoa(page), &listing); err != nil {
+			var status *statusError
+			if errors.As(err, &status) && status.Status == 404 {
+				return fmt.Errorf("GitLab did not find the project's releases (%s). The project or its releases may not be public", projectURL)
+			}
+			if errors.As(err, &status) && status.Status == 429 {
+				return errors.New("GitLab is limiting requests right now; try again in a few minutes")
+			}
+			return err
+		}
+		var batch []release
+		if err := json.Unmarshal(listing.Bytes(), &batch); err != nil {
+			return fmt.Errorf("unexpected answer from GitLab: %v", err)
+		}
+		releases = append(releases, batch...)
+		if found, asset, newest, newestTag = hudRelease(releases, build); asset.Name != "" || len(batch) < releasesPerPage {
+			break
+		}
 	}
-	found, asset, newest, newestTag := hudRelease(releases, build)
 	if asset.Name == "" {
 		if newest > 0 {
 			return fmt.Errorf("there is no HUD for game build %d yet; the newest release (%s) is for build %d. "+

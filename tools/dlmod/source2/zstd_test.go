@@ -157,3 +157,29 @@ func TestZstdRejectsDamage(t *testing.T) {
 		DecodeZstd(damaged, 0) // must not panic; a damaged byte may still decode to something
 	}
 }
+
+// Literals given as one byte repeated (a compressed block with RLE literals and no sequences).
+func TestZstdRepeatedLiterals(t *testing.T) {
+	block := []byte{5<<3 | 1, 'x', 0} // literals: RLE, 5 bytes of 'x'; then 0 sequences
+	frame := append([]byte{0x28, 0xB5, 0x2F, 0xFD, 0x20, 5, byte(len(block))<<3 | 2<<1 | 1, 0, 0}, block...)
+	if got, err := DecodeZstd(frame, 5); err != nil || string(got) != "xxxxx" {
+		t.Fatalf("got %q, %v", got, err)
+	}
+}
+
+// FuzzDecodeZstd checks that no input makes the decoder panic or run away. go test runs the
+// seeds; "go test -fuzz FuzzDecodeZstd ./source2" searches further.
+func FuzzDecodeZstd(f *testing.F) {
+	archives, _ := filepath.Glob(filepath.Join("testdata", "*.tar.zst"))
+	for _, archive := range archives {
+		data, _ := os.ReadFile(archive)
+		f.Add(data[:min(len(data), 4096)])
+	}
+	f.Add([]byte{0x28, 0xB5, 0x2F, 0xFD, 0x20, 5, 3<<3 | 2<<1 | 1, 0, 0, 5<<3 | 1, 'x', 0})
+	f.Fuzz(func(t *testing.T, data []byte) {
+		out, err := DecodeZstd(data, 0)
+		if err == nil && len(out) > zstdMaxOutput {
+			t.Fatalf("decoded %d bytes", len(out))
+		}
+	})
+}

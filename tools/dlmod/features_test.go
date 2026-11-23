@@ -5,6 +5,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -135,7 +136,7 @@ func fakeGitLab(t *testing.T, files map[string][]byte, releases func(base string
 		http.NotFound(w, r)
 	}))
 	saved := releasesURL
-	releasesURL = server.URL + "/releases"
+	releasesURL = server.URL + "/releases?per_page=100"
 	t.Cleanup(func() { releasesURL = saved; server.Close() })
 	return server
 }
@@ -223,7 +224,7 @@ func TestUpdateExplainsAMissingProject(t *testing.T) {
 	server := httptest.NewServer(http.NotFoundHandler())
 	defer server.Close()
 	saved := releasesURL
-	releasesURL = server.URL + "/releases"
+	releasesURL = server.URL + "/releases?per_page=100"
 	defer func() { releasesURL = saved }()
 	store, _ := openStore(game.Game)
 	if err := store.updateHUD(quietUI("")); err == nil || !strings.Contains(err.Error(), "may not be public") {
@@ -291,7 +292,7 @@ func TestProfilesInTheFullScreenView(t *testing.T) {
 func TestOnlySecureAddressesAreDownloaded(t *testing.T) {
 	for address, ok := range map[string]bool{
 		"https://github.com/MrHakan/deadlock-modkit/releases/download/v0.3.0/x.zip": true,
-		"http://127.0.0.1:8080/releases":                                            true,
+		"http://127.0.0.1:8080/releases":                                            true, // only while allowLocalHTTP is set, as in tests
 		"http://example.com/x.zip":                                                  false,
 		"file:///etc/passwd":                                                        false,
 		"ftp://example.com/x.zip":                                                   false,
@@ -299,5 +300,52 @@ func TestOnlySecureAddressesAreDownloaded(t *testing.T) {
 		if err := allowedURL(address); (err == nil) != ok {
 			t.Errorf("allowedURL(%q) = %v", address, err)
 		}
+	}
+}
+
+// A HUD for an old build can be on a later page of releases; dlmod reads on until it finds one.
+func TestUpdateReadsOlderPagesOfReleases(t *testing.T) {
+	game := newFakeGame(t) // build 6864
+	hud := writeZip(t, filepath.Join(t.TempDir(), "hud.zip"), map[string][]byte{"pak01_dir.vpk": buildVPK(2, "panorama/layout/hud.vxml_c")})
+	zipData, _ := os.ReadFile(hud)
+	const name = "deadlock-counter-intelligence-6864-hud-en.zip"
+	var pages []string
+	var server *httptest.Server
+	server = httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/releases":
+			pages = append(pages, r.URL.Query().Get("page"))
+			var list []release
+			if r.URL.Query().Get("page") == "1" {
+				for i := 0; i < releasesPerPage; i++ {
+					list = append(list, newRelease(fmt.Sprintf("v1.%d.0", i), "2026-10-01T00:00:00Z",
+						releaseFile(server.URL, "v1.0.0", "deadlock-counter-intelligence-7000-hud-en.zip")))
+				}
+			} else {
+				list = []release{newRelease("v0.9.0", "2026-01-01T00:00:00Z", releaseFile(server.URL, "v0.9.0", name), releaseFile(server.URL, "v0.9.0", name+".sha256"))}
+			}
+			json.NewEncoder(w).Encode(list)
+		case "/download/" + name:
+			w.Write(zipData)
+		case "/download/" + name + ".sha256":
+			fmt.Fprintf(w, "%s  %s\n", sha256Of(zipData), name)
+		default:
+			if strings.HasPrefix(r.URL.Path, "/-/releases/") {
+				http.Redirect(w, r, "/download/"+r.URL.Path[strings.LastIndex(r.URL.Path, "/")+1:], http.StatusFound)
+				return
+			}
+			http.NotFound(w, r)
+		}
+	}))
+	defer server.Close()
+	saved := releasesURL
+	releasesURL = server.URL + "/releases?per_page=100"
+	defer func() { releasesURL = saved }()
+	store, _ := openStore(game.Game)
+	if err := store.updateHUD(quietUI("")); err != nil {
+		t.Fatal(err)
+	}
+	if !reflect.DeepEqual(pages, []string{"1", "2"}) || !reflect.DeepEqual(enabledNames(t, store), []string{"Deadlock Counter Intelligence v0.9.0"}) {
+		t.Fatalf("pages %v, installed %v", pages, enabledNames(t, store))
 	}
 }

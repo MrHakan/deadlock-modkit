@@ -134,7 +134,7 @@ func TestAbilityValueText(t *testing.T) {
 			t.Errorf("valueText(%+v) = %q, want %q", c.v, got, c.want)
 		}
 	}
-	for value, want := range map[string]bool{"12": true, "0": false, "0m": false, "-1": false, "-1.0": false, "0.2": true, "": false, "yes": true} {
+	for value, want := range map[string]bool{"12": true, "0": false, "0m": false, "-1": false, "-1.0": false, "-30%": true, "0.2": true, "": false, "yes": true} {
 		if got := shownValue(value); got != want {
 			t.Errorf("shownValue(%q) = %v", value, got)
 		}

@@ -25,10 +25,9 @@ var errZstd = errors.New("zstd: corrupt data")
 // DecodeZstd decodes every frame in src. size, when positive, is the expected decoded size,
 // which sizes the output and is checked at the end.
 func DecodeZstd(src []byte, size int) ([]byte, error) {
-	capacity := size
-	if capacity <= 0 || capacity > zstdMaxOutput {
-		capacity = 0
-	}
+	// The expected size comes from the file too, so it only sizes the first allocation, up to
+	// what the input could plausibly expand to; the output grows past that as it decodes.
+	capacity := min(max(size, 0), 64<<20, 32*len(src)+4096)
 	out := make([]byte, 0, capacity)
 	for len(src) > 0 {
 		if len(src) < 4 {

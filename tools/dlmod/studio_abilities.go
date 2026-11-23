@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"image/png"
+	"math"
 	"net/http"
 	"path"
 	"sort"
@@ -269,7 +270,7 @@ func (s *studio) abilityList(r *http.Request) (any, error) {
 
 // abilityFile reads one of an ability's files, the game's own or the installed mod's.
 func (s *studio) abilityFile(r *http.Request, name string) ([]byte, error) {
-	if strings.Contains(name, "..") {
+	if strings.Contains(name, "..") || strings.Contains(name, "\\") || strings.HasPrefix(name, "/") {
 		return nil, errors.New("bad file name")
 	}
 	if r.URL.Query().Get("which") == "yours" {
@@ -353,6 +354,10 @@ func (s *studio) abilityModelPicture(r *http.Request) (any, error) {
 		return nil, err
 	}
 	yaw, _ := strconv.ParseFloat(r.URL.Query().Get("yaw"), 64)
+	if math.IsNaN(yaw) || math.IsInf(yaw, 0) {
+		yaw = 0
+	}
+	yaw = math.Mod(yaw, 360)
 	var out bytes.Buffer
 	if err := png.Encode(&out, source2.RenderPreview(sets, 240, 240, yaw)); err != nil {
 		return nil, err
