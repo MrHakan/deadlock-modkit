@@ -44,7 +44,7 @@ Usage:
   dlmod model <hero> <file> [-keep gun] [-move gun=X,Y,Z] [-scale 1] [-yaw 0] [-zup] [-steady] [-no-arm-ik] [-usual-pose]
   dlmod image <game image> <picture> [...]  put pictures over game images (panorama/images/...vtex_c)
   dlmod text KEY=VALUE [...]           change lines of the English hero text (KEY= restores one)
-  dlmod select <hero> [bg=PIC] [name=TEXT] [logo=SVG] [tags=A,B,C] [colors=#rrggbb,...] [scene=hide]
+  dlmod select <hero> [bg=PIC] [name=TEXT] [logo=SVG] [tags=A,B,C] [colors=#rrggbb,...] [scene=hide|frame]
                                the hero select screen: background, name logo, tags, tag colours, 3D scene
   dlmod icons <hero> [ICON=PIC ...]  list or replace ability icons (pictures become white glyphs)
   dlmod meshy <hero|all> [folder] [concept=...]

@@ -125,7 +125,10 @@ func installPictures(ui prompter, store *Store, game Game, w *workspace, dir str
 		selectArgs = append(selectArgs, "colors="+strings.Join(sel.Colors, ","))
 	}
 	if len(selectArgs) > 1 {
-		if sel.HideScene && hasPrefix(selectArgs, "bg=") {
+		switch {
+		case sel.Scene == "frame":
+			selectArgs = append(selectArgs, "scene=frame")
+		case sel.HideScene && hasPrefix(selectArgs, "bg="):
 			selectArgs = append(selectArgs, "scene=hide")
 		}
 		ui.say("Hero select screen: %s", strings.Join(selectArgs[1:], " "))

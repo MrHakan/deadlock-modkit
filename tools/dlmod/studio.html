@@ -232,6 +232,7 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <h2>Install</h2>
     <div class="info">The 3D model goes to the Model tab to be rigged and installed. The hero select art, cards, icons and ability models you keep install here, with the name, tags and colours above.</div>
     <label class="info" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="crEffects" checked> Recolour the hero's ability effects with my three colours</label>
+    <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="crFrame"> Show my 3D model on the hero select screen, in front of the picture (install the model first)</label>
     <div class="buttons"><button class="primary" id="crInstall" disabled>Install in the game</button></div>
     <div class="info" id="crFolder" style="margin-top:6px;word-break:break-all"></div>
     <div class="log" id="crLog"></div>
@@ -1775,7 +1776,7 @@ $("crImport").onclick = async () => {
 $("crBatch").onclick = runBatch;
 $("crInstall").onclick = async () => {
   busy("Installing the hero select screen, cards, icons and ability models…");
-  try { const r = await api("creator/install", { hero: cr.hero, effects: $("crEffects").checked }); for (const m of r.messages) crLog(m, "ok"); }
+  try { const r = await api("creator/install", { hero: cr.hero, effects: $("crEffects").checked, scene: $("crFrame").checked ? "frame" : "" }); for (const m of r.messages) crLog(m, "ok"); }
   catch (e) { crLog(e.message, "bad"); }
   busy();
 };

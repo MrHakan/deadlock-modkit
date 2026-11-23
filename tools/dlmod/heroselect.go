@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"os"
 	"path/filepath"
 	"sort"
@@ -29,10 +30,11 @@ type selectSettings struct {
 	Tags       []string `json:"tags,omitempty"`
 	Colors     []string `json:"colors,omitempty"` // tag backgrounds, #rrggbb, repeated over the tags
 	HideScene  bool     `json:"hideScene,omitempty"`
+	FrameScene bool     `json:"frameScene,omitempty"` // the installed model fitted into the hero's place, the hero's decor hidden
 }
 
 func (s selectSettings) empty() bool {
-	return s.Background == "" && s.Name == "" && s.Logo == "" && len(s.Tags) == 0 && len(s.Colors) == 0 && !s.HideScene
+	return s.Background == "" && s.Name == "" && s.Logo == "" && len(s.Tags) == 0 && len(s.Colors) == 0 && !s.HideScene && !s.FrameScene
 }
 
 func (g Game) selectDir() string { return filepath.Join(g.StateDir(), "select") }
@@ -169,7 +171,17 @@ func buildHeroSelect(p prompter, game Game, all map[string]selectSettings) (map[
 			}
 		}
 		css.WriteString(tagColorRules(hero, s.Colors))
-		if s.HideScene {
+		if s.FrameScene {
+			if where.Scene == "" {
+				p.say("%s has no 3D hero select scene in this game build; it is left as it is.", heroDisplayName(hero))
+			} else {
+				scene, err := framedScene(game, hero, filepath.Join(game.Citadel(), filepath.FromSlash(where.Scene)))
+				if err != nil {
+					return nil, fmt.Errorf("%s: %v", where.Scene, err)
+				}
+				files[where.Scene] = scene
+			}
+		} else if s.HideScene {
 			if where.Scene == "" {
 				p.say("%s has no 3D hero select scene in this game build; it is left as it is.", heroDisplayName(hero))
 			} else {
@@ -229,6 +241,85 @@ func tagColorRules(hero string, colors []string) string {
 		fmt.Fprintf(&sb, ".hero_%s CitadelHeroTags .heroTag.Tag%d Label{color: %s;}", hero, i, label)
 	}
 	return sb.String()
+}
+
+// sceneFrame fits a replacement's bounds into the hero's: the scale that keeps it within the
+// hero's height and width (between 0.4 and 2.5 times), and the offset, in the model's space, that
+// stands it on the hero's feet at the hero's centre.
+func sceneFrame(heroLo, heroHi, modelLo, modelHi [3]float64) (float64, [3]float64) {
+	size := func(lo, hi [3]float64) (float64, float64) {
+		return hi[2] - lo[2], math.Max(hi[0]-lo[0], hi[1]-lo[1])
+	}
+	hh, hw := size(heroLo, heroHi)
+	mh, mw := size(modelLo, modelHi)
+	scale := 1.0
+	if mh > 0 && mw > 0 {
+		scale = math.Max(0.4, math.Min(2.5, math.Min(hh/mh, hw/mw)))
+	}
+	var offset [3]float64
+	for k := 0; k < 2; k++ {
+		offset[k] = (heroLo[k]+heroHi[k])/2 - (modelLo[k]+modelHi[k])/2*scale
+	}
+	offset[2] = heroLo[2] - modelLo[2]*scale
+	return scale, offset
+}
+
+// framedScene reads a hero select scene and returns it with the switched-on replacement of the
+// hero's model fitted into the hero's place, and the hero's own decor hidden.
+func framedScene(game Game, hero, path string) ([]byte, error) {
+	index, err := openHeroModels(game)
+	if err != nil {
+		return nil, err
+	}
+	modelPath, err := heroModelPath(index, hero)
+	if err != nil {
+		return nil, err
+	}
+	original, err := index.Read(modelPath + "_c")
+	if err != nil {
+		return nil, err
+	}
+	mods, err := newModReader(game)
+	if err != nil {
+		return nil, err
+	}
+	replacement, _, err := mods.read(modelPath + "_c")
+	if err != nil {
+		return nil, err
+	}
+	if replacement == nil {
+		return nil, fmt.Errorf("no switched-on mod replaces %s's model: install one first (dlmod model or the studio), or use scene=hide", heroDisplayName(hero))
+	}
+	bounds := func(raw []byte) ([3]float64, [3]float64, error) {
+		m, err := source2.LoadModel(raw)
+		if err != nil {
+			return [3]float64{}, [3]float64{}, err
+		}
+		return m.Bounds(source2.ImportOptions{})
+	}
+	heroLo, heroHi, err := bounds(original)
+	if err != nil {
+		return nil, err
+	}
+	modelLo, modelHi, err := bounds(replacement)
+	if err != nil {
+		return nil, fmt.Errorf("the installed model: %v", err)
+	}
+	scale, offset := sceneFrame(heroLo, heroHi, modelLo, modelHi)
+	scene, err := source2.OpenVPKFiltered(path, func(string) bool { return true })
+	if err != nil {
+		return nil, err
+	}
+	files := map[string][]byte{}
+	for name := range scene.Files {
+		if files[name], err = scene.Read(name); err != nil {
+			return nil, err
+		}
+	}
+	if _, err := source2.FrameHeroScene(files, modelPath, scale, offset); err != nil {
+		return nil, err
+	}
+	return source2.WriteVPK(files), nil
 }
 
 // hiddenScene reads a hero select scene and returns it rebuilt with the hero and props hidden.
@@ -333,7 +424,7 @@ func selectTextEdits(game Game, hero string, name string, tags []string) (*textP
 }
 
 // selectCommand: dlmod select <hero> [bg=picture] [name=TEXT] [logo=file.svg] [tags=A,B,C]
-// [colors=#rrggbb,...] [scene=hide|show], or dlmod select <hero> restore.
+// [colors=#rrggbb,...] [scene=hide|frame|show], or dlmod select <hero> restore.
 func selectCommand(ui prompter, game Game, args []string) error {
 	if len(args) == 0 {
 		return errors.New("name a hero, for example: dlmod select ivy bg=select.png name=SHADE tags=Sneaky,Swift,Deadly colors=#7A3CFF,#FFB020 scene=hide")
@@ -414,11 +505,13 @@ func selectCommand(ui prompter, game Game, args []string) error {
 			case "scene":
 				switch value {
 				case "hide":
-					s.HideScene = true
+					s.HideScene, s.FrameScene = true, false
+				case "frame":
+					s.HideScene, s.FrameScene = false, true
 				case "show":
-					s.HideScene = false
+					s.HideScene, s.FrameScene = false, false
 				default:
-					return errors.New("scene is hide or show")
+					return errors.New("scene is hide, frame or show")
 				}
 			default:
 				return fmt.Errorf("unknown setting %s (bg, name, logo, tags, colors, scene)", key)
@@ -508,4 +601,22 @@ func dropFromImages(ui prompter, game Game, files map[string][]byte) error {
 	}
 	ui.say("%s moved from %s to %s.", strings.Join(paths, ", "), customImagesName, heroSelectName)
 	return store.installReplacements(ui, project)
+}
+
+// modelInstalled reports whether a switched-on mod replaces the hero's model.
+func modelInstalled(game Game, hero string) bool {
+	index, err := openHeroModels(game)
+	if err != nil {
+		return false
+	}
+	modelPath, err := heroModelPath(index, hero)
+	if err != nil {
+		return false
+	}
+	files, err := installedFiles(game)
+	if err != nil {
+		return false
+	}
+	_, ok := files[modelPath+"_c"]
+	return ok
 }

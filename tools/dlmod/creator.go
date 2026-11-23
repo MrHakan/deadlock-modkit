@@ -387,6 +387,7 @@ type creatorRequest struct {
 	Key     string         `json:"key"`
 	Edit    string         `json:"edit"`    // run: change this earlier result instead
 	Effects bool           `json:"effects"` // install: recolour the hero's effects with the character's colours
+	Scene   string         `json:"scene"`   // install: "frame" to show the installed 3D model on the hero select screen
 }
 
 func (s *studio) creatorRequest(r *http.Request) (creatorRequest, *creatorSession, error) {
@@ -941,6 +942,17 @@ func (s *studio) creatorInstall(r *http.Request) (any, error) {
 	w, dir, hero, colors := c.work, c.dir, c.state.Hero, append([]string{}, c.state.Answers.Colors...)
 	c.mu.Unlock()
 	p := &webPrompter{}
+	if req.Scene == "frame" {
+		// The hero select screen shows the installed 3D model in front of the picture; without one
+		// installed yet, the picture shows alone.
+		framed := *w
+		if modelInstalled(s.game, hero) {
+			framed.Select.Scene = "frame"
+		} else {
+			p.say("The 3D model is not installed yet (Model tab), so the hero select screen shows the picture alone.")
+		}
+		w = &framed
+	}
 	done, err := installPictures(p, store, s.game, w, dir)
 	if err != nil {
 		return nil, err

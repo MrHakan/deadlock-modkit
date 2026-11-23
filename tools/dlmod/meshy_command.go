@@ -46,6 +46,7 @@ type workspaceSelect struct {
 	Tags      []string `json:"tags"`
 	Colors    []string `json:"colors"`
 	HideScene bool     `json:"hideScene"`
+	Scene     string   `json:"scene,omitempty"` // "frame": the installed 3D model in front of the picture, instead of hiding the scene
 }
 
 type workspace struct {

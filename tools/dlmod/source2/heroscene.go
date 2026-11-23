@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"hash/crc32"
+	"math"
 	"strings"
 )
 
@@ -116,12 +117,7 @@ func hideProps(root *Value) int {
 		if class := values.Get("classname"); class == nil || class.S != "prop_dynamic" {
 			continue
 		}
-		for _, s := range values.Get("scales").items() {
-			setFloat(s, 0.001)
-		}
-		if o := values.Get("origin").items(); len(o) == 3 {
-			setFloat(o[2], floatOf(o[2])-hiddenDrop)
-		}
+		hideProp(values)
 		n++
 	}
 	return n
@@ -179,4 +175,98 @@ func setFloat(v *Value, f float64) {
 		v.Kind = Float32
 	}
 	v.F = f
+}
+
+// FrameHeroScene fits another model into the hero's place in a hero select scene (given as its
+// files): the prop showing model is scaled by scale about its origin and moved by offset, given in
+// the model's own space and turned with the prop, so a replacement of another size or shape stands
+// where the camera expects the hero. The scene's other props and world meshes (the hero's own
+// decor) are hidden as HideHeroScene does; lights, camera and sky stay. It returns how many props
+// show the model.
+func FrameHeroScene(files map[string][]byte, modelPath string, scale float64, offset [3]float64) (int, error) {
+	model := strings.ToLower(modelPath)
+	framed := 0
+	for name, data := range files {
+		switch {
+		case strings.HasSuffix(name, ".vents_c"):
+			out, n, err := editKV3Data(data, func(root *Value) int {
+				n := 0
+				for _, ent := range root.Get("m_entityKeyValues").items() {
+					values := ent.Get("keyValues3Data").Get("values")
+					if values == nil {
+						continue
+					}
+					if class := values.Get("classname"); class == nil || class.S != "prop_dynamic" {
+						continue
+					}
+					// The hero's prop is the one named hero_root or showing the model. A few scenes
+					// show an older copy of the hero (Yamato, Infernus): it shows the model instead.
+					m := values.Get("model")
+					name := values.Get("targetname")
+					isHero := (m != nil && strings.ToLower(m.S) == model) || (name != nil && strings.Contains(name.S, "hero_root"))
+					if !isHero {
+						hideProp(values)
+						continue
+					}
+					values.Set("model", NewString(modelPath))
+					for _, s := range values.Get("scales").items() {
+						setFloat(s, floatOf(s)*scale)
+					}
+					var angles [3]float64
+					for i, a := range values.Get("angles").items() {
+						if i < 3 {
+							angles[i] = floatOf(a)
+						}
+					}
+					moved := turnByAngles(offset, angles)
+					if o := values.Get("origin").items(); len(o) == 3 {
+						for k := 0; k < 3; k++ {
+							setFloat(o[k], floatOf(o[k])+moved[k])
+						}
+					}
+					n++
+				}
+				return n
+			})
+			if err != nil {
+				return 0, fmt.Errorf("%s: %v", name, err)
+			}
+			files[name] = out
+			framed += n
+		case strings.HasSuffix(name, ".vwnod_c"):
+			out, _, err := editKV3Data(data, hideSceneObjects)
+			if err != nil {
+				return 0, fmt.Errorf("%s: %v", name, err)
+			}
+			files[name] = out
+		}
+	}
+	if framed == 0 {
+		return 0, fmt.Errorf("the scene has no prop showing %s", model)
+	}
+	return framed, nil
+}
+
+// turnByAngles turns a vector by entity angles (pitch, yaw, roll in degrees, as Source orders
+// them: roll about X, then pitch about Y, then yaw about Z).
+func turnByAngles(v [3]float64, angles [3]float64) [3]float64 {
+	pitch, yaw, roll := angles[0]*math.Pi/180, angles[1]*math.Pi/180, angles[2]*math.Pi/180
+	sp, cp := math.Sincos(pitch)
+	sy, cy := math.Sincos(yaw)
+	sr, cr := math.Sincos(roll)
+	x, y, z := v[0], v[1], v[2]
+	y, z = y*cr-z*sr, y*sr+z*cr  // roll about X
+	x, z = x*cp+z*sp, -x*sp+z*cp // pitch about Y
+	x, y = x*cy-y*sy, x*sy+y*cy  // yaw about Z
+	return [3]float64{x, y, z}
+}
+
+// hideProp shrinks a prop_dynamic's values and drops it below the scene.
+func hideProp(values *Value) {
+	for _, s := range values.Get("scales").items() {
+		setFloat(s, 0.001)
+	}
+	if o := values.Get("origin").items(); len(o) == 3 {
+		setFloat(o[2], floatOf(o[2])-hiddenDrop)
+	}
 }
