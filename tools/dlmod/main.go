@@ -49,7 +49,9 @@ Usage:
   dlmod icons <hero> [ICON=PIC ...]  list or replace ability icons (pictures become white glyphs)
   dlmod meshy <hero|all> [folder] [concept=...]
                                write a Meshy workspace: per-hero prompts for a full replacement character
-  dlmod apply <workspace folder>  install the generated files of a hero's Meshy workspace
+  dlmod apply <workspace folder|pack.dlmodchar>  install the generated files of a hero's Meshy workspace or a character pack
+  dlmod pack <hero|folder> [file]  pack a character (the creator's for a hero, or a workspace folder) into one .dlmodchar file
+  dlmod unpack <file.dlmodchar>  make a character pack the hero's character in the creator
   dlmod prop <game model> <file> [particle ...] [-scale 1]  put a model in place of an ability prop (a thrown bomb)
   dlmod effects <hero> <#rrggbb|palette> [strength|name]  recolour a hero's ability and weapon particles (or: restore)
   dlmod paint <hero> [palette|#a,#b,#c|restore] [-skip NAME]  repaint a hero's ability particles, materials and textures
@@ -196,7 +198,7 @@ var commands = map[string]bool{
 	"install": true, "list": true, "status": true, "on": true, "enable": true, "off": true,
 	"disable": true, "remove": true, "uninstall": true, "patch": true, "repair": true,
 	"unpatch": true, "play": true, "help": true, "update": true, "profile": true, "profiles": true,
-	"search": true, "get": true, "extract": true, "model": true, "image": true, "prop": true, "effects": true, "paint": true, "text": true, "select": true, "icons": true, "meshy": true, "apply": true, "studio": true,
+	"search": true, "get": true, "extract": true, "model": true, "image": true, "prop": true, "effects": true, "paint": true, "text": true, "select": true, "icons": true, "meshy": true, "apply": true, "studio": true, "pack": true, "unpack": true,
 }
 
 // palette holds escape sequences; every field is empty when colours are off (NO_COLOR, old consoles).
@@ -379,6 +381,9 @@ func run(ui *UI, args []string, opts options) int {
 		if len(args) == 1 && isModelFile(args[0]) { // a model dropped on dlmod opens the studio with it
 			command = "studio"
 		}
+		if len(args) == 1 && strings.HasSuffix(strings.ToLower(args[0]), packExt) { // a character pack dropped on dlmod installs it
+			command = "apply"
+		}
 	}
 	if err := execute(ui, game, command, rest, opts); err != nil {
 		ui.say("%s", ui.p.paint(ui.p.red, "Error: "+err.Error()))
@@ -477,7 +482,14 @@ func execute(ui *UI, game Game, command string, args []string, opts options) err
 	case "meshy":
 		return meshyCommand(ui, game, args)
 	case "apply":
+		if len(args) == 1 && strings.HasSuffix(strings.ToLower(args[0]), packExt) {
+			return applyPack(ui, store, game, args[0], opts)
+		}
 		return applyCommand(ui, store, game, args, opts)
+	case "pack":
+		return packCommand(ui, game, args)
+	case "unpack":
+		return unpackCommand(ui, game, args)
 	case "text":
 		return textCommand(ui, game, args)
 	case "image":

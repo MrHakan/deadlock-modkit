@@ -147,6 +147,8 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .8s ease; }
 .bar.queue i { width: 30%; background: var(--accent-dim); animation: queue 1.5s ease-in-out infinite; }
 @keyframes queue { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+.pack-row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.pack-row small { color: var(--dim); font-size: 11px; }
 .checks { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; font-variant-numeric: tabular-nums; }
 .checks th, .checks td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); }
 .checks th { color: var(--dim); font-weight: 500; }
@@ -236,6 +238,13 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <div class="buttons"><button class="primary" id="crInstall" disabled>Install in the game</button></div>
     <div class="info" id="crFolder" style="margin-top:6px;word-break:break-all"></div>
     <div class="log" id="crLog"></div>
+  </section>
+  <section>
+    <h2>Characters for this hero</h2>
+    <div class="info">Keep several characters for one hero: save this one, switch to another (the one open is saved first), or share one as a single .dlmodchar file. <code>dlmod apply file.dlmodchar</code> installs a pack, and dropping one on dlmod does too.</div>
+    <div id="crPacks"></div>
+    <div class="buttons"><button id="crPackSave">Save this character</button><button id="crPackDownload">Download as a pack</button></div>
+    <div class="buttons"><button id="crPackOpen">Open a pack file…</button><input type="file" id="crPackFile" accept=".dlmodchar,.zip" hidden></div>
   </section>
   </div>
 
@@ -1756,9 +1765,65 @@ async function loadCreator() {
   $("createEmpty").textContent = "Reading " + $("hero").selectedOptions[0].text + " from the game…"; $("createEmpty").hidden = false;
   try {
     cr.view = await api("creator/state", { hero }); cr.hero = hero; cr.edits = {};
-    fillAnswers(cr.view.answers, cr.view.concept); keyBox(cr.view.hasKey); renderCreator(); pollCreator();
+    fillAnswers(cr.view.answers, cr.view.concept); keyBox(cr.view.hasKey); renderCreator(); pollCreator(); loadPacks();
   } catch (e) { $("createEmpty").textContent = e.message; }
 }
+
+// Characters for this hero: packs saved beside the one being made.
+function renderPacks(packs) {
+  const list = $("crPacks"); list.innerHTML = "";
+  for (const p of packs || []) {
+    const row = el("div", "pack-row");
+    row.append(el("span", "", p.name), el("small", "", new Date(p.created).toLocaleDateString() + " · " + (p.size / 1048576).toFixed(1) + " MB"));
+    const open = el("button", "", "Open");
+    open.onclick = () => openPack(p);
+    row.append(open); list.append(row);
+  }
+  if (!(packs || []).length) list.append(el("div", "info", "No saved characters yet."));
+}
+async function loadPacks() {
+  if (!cr.hero) return;
+  try { renderPacks((await api("creator/packs", { hero: cr.hero })).packs); } catch (e) { crLog(e.message, "bad"); }
+}
+function showOpened(r) {
+  cr.view = r; cr.edits = {};
+  fillAnswers(r.answers, r.concept); renderCreator(); renderPacks(r.packs); pollCreator();
+  crLog(`Opened ${r.opened}.` + (r.savedFirst && r.savedFirst !== "." ? ` The character that was open is saved as ${r.savedFirst}.` : ""), "ok");
+}
+async function openPack(p) {
+  if (!confirm(`Switch to ${p.name}? The character open now is saved first.`)) return;
+  busy("Opening " + p.name + "…");
+  try { showOpened(await api("creator/pack/open", { hero: cr.hero, pack: p.file })); } catch (e) { crLog(e.message, "bad"); }
+  busy();
+}
+$("crPackSave").onclick = async () => {
+  try { const r = await api("creator/pack/save", { hero: cr.hero }); renderPacks(r.packs); crLog(`Saved ${r.name} as ${r.saved}.`, "ok"); }
+  catch (e) { crLog(e.message, "bad"); }
+};
+$("crPackDownload").onclick = async () => {
+  try {
+    const q = `hero=${encodeURIComponent(cr.hero)}&t=${TOKEN}`;
+    const name = await (await fetch(`/api/creator/pack/name?${q}`)).json();
+    if (name.error) throw new Error(name.error);
+    const response = await fetch(`/api/creator/pack/download?${q}`);
+    if (!response.ok) throw new Error((await response.json()).error);
+    const a = document.createElement("a"); a.href = URL.createObjectURL(await response.blob()); a.download = name.file; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  } catch (e) { crLog(e.message, "bad"); }
+};
+$("crPackOpen").onclick = () => $("crPackFile").click();
+$("crPackFile").onchange = async () => {
+  const file = $("crPackFile").files[0]; $("crPackFile").value = "";
+  if (!file || !confirm(`Open ${file.name}? The character open now for its hero is saved first.`)) return;
+  const form = new FormData(); form.append("file", file, file.name);
+  busy("Opening " + file.name + "…");
+  try {
+    const r = await api("creator/pack/upload", form, true);
+    if (r.hero !== $("hero").value) { cr.hero = null; cr.view = null; $("hero").value = r.hero; $("hero").dispatchEvent(new Event("change")); }
+    else showOpened(r);
+  } catch (e) { crLog(e.message, "bad"); }
+  busy();
+};
 $("crImport").onclick = async () => {
   busy("Loading your 3D model…");
   try {

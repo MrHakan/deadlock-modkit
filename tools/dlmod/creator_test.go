@@ -307,6 +307,29 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 		t.Fatal("the ability model was not installed")
 	}
 
+	// The character is saved as a pack beside others for the hero, downloads as one, and opens again.
+	var packs struct {
+		Packs []savedPack
+		Saved string
+	}
+	if code, body := call("creator/pack/save", map[string]string{"hero": "wraith"}, &packs); code != 200 || len(packs.Packs) != 1 || packs.Saved != "rook.dlmodchar" {
+		t.Fatalf("save: %d %s", code, body)
+	}
+	response, err := http.Get(server.URL + "/api/creator/pack/download?hero=wraith&t=secret")
+	if err != nil {
+		t.Fatal(err)
+	}
+	var pack bytes.Buffer
+	pack.ReadFrom(response.Body)
+	response.Body.Close()
+	if manifest, _, err := readPack(pack.Bytes()); err != nil || manifest.Name != "Rook" || manifest.Hero != "wraith" {
+		t.Fatalf("download: %+v %v", manifest, err)
+	}
+	var opened struct{ Opened string }
+	if code, body := call("creator/pack/open", map[string]string{"hero": "wraith", "pack": "rook.dlmodchar"}, &opened); code != 200 || opened.Opened != "Rook" {
+		t.Fatalf("open: %d %s", code, body)
+	}
+
 	// The creation is kept on disk, with the workspace dlmod apply reads.
 	if w, err := readWorkspace(dir); err != nil || w.Concept != v.Concept || w.Select.Name != "Rook" {
 		t.Fatalf("workspace %+v %v", w, err)

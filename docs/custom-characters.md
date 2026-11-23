@@ -38,6 +38,17 @@ The studio's **Create** tab (`dlmod studio`) does the whole thing from one page,
 
 Everything is saved in `game/dlmod/characters/<hero>`: the answers, every result, and the hero's workspace files, so closing dlmod loses nothing and `dlmod apply` can install the same folder.
 
+**Several characters per hero.** *Characters for this hero* keeps the character being made beside others for the same hero: *Save this character* stores it as a pack, *Open* switches to another one (the one open is saved first, so nothing is lost), *Download as a pack* gives one file to share, and *Open a pack file…* takes one in. A pack, `<name>-<hero>.dlmodchar`, is a ZIP of the workspace, its kept pictures and models and the creator's answers; the kept results that `assets/` already holds go in once. Without the studio:
+
+```powershell
+dlmod pack haze                 # the creator's character for Haze, as rook-haze.dlmodchar
+dlmod pack meshy/haze rook.dlmodchar
+dlmod unpack rook-haze.dlmodchar   # make it Haze's character in the creator
+dlmod apply rook-haze.dlmodchar    # install it (dropping it on dlmod.exe does too)
+```
+
+dlmod unpacks only a pack's own files (the workspace, `assets/` and `gen/`), never paths outside its folder.
+
 dlmod built with `go build -tags nomeshy` leaves the creator out; the Create tab then does not appear. The creator is meant to become a separate download later.
 
 ## Checking abilities without the game
