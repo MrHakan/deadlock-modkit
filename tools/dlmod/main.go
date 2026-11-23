@@ -32,6 +32,7 @@ Usage:
   dlmod patch                  make the game load mods again after a game update
   dlmod unpatch                undo dlmod's gameinfo.gi change
   dlmod play                   patch if needed, then start Deadlock through Steam
+  dlmod play <hero>            the same, straight into the Hero Sandbox as that hero, to check a character
   dlmod update                 download the Counter Intelligence HUD for your game build (GitHub)
   dlmod search <words> [-hero H] [-category C]
                                search the online mod catalog (deadlockmods.app, from GameBanana)
@@ -448,6 +449,9 @@ func execute(ui *UI, game Game, command string, args []string, opts options) err
 		}
 		return err
 	case "play":
+		if len(args) == 1 { // a hero: straight into the Hero Sandbox with it
+			return playTest(ui, game, args[0])
+		}
 		if err := ensurePatched(ui, game); err != nil {
 			return err
 		}

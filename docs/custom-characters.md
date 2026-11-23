@@ -63,6 +63,10 @@ The studio's **Abilities** tab shows the picked hero's four abilities the way th
 
 dlmod reads the installed mods the way the game does: when two switched-on mods replace one file, the one in the lower slot wins. *Read the mods again* refreshes the tab after installing or switching mods. Values an ability takes from its base class, such as some cooldowns, are not listed.
 
+## Trying it in the game
+
+`dlmod play haze` (or *Test in the game* after installing in the model studio) starts Deadlock straight in the Hero Sandbox as Haze, with the mods loaded. dlmod writes `game/citadel/cfg/dlmod_test.cfg`, which turns on the sandbox's testing tools (`citadel_hero_testing_enabled`) and picks the hero (`selecthero hero_haze`), and starts the game through Steam with `+map new_player_basics +exec dlmod_test`; Steam asks before it uses launch options. If you are not playing the hero once you are in, open the console (F7) and type `exec dlmod_test`.
+
 ## The Meshy workspace
 
 [`meshy/`](../meshy/) has a folder for every hero (44 for build 6864) with everything needed to make a replacement with [Meshy](https://www.meshy.ai):

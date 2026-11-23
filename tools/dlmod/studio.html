@@ -413,6 +413,7 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
   <section>
     <h2>6 · Install</h2>
     <button class="primary" id="install" disabled>Install on hero</button>
+    <div class="buttons"><button id="playTest" disabled>Test in the game: the Hero Sandbox as this hero</button></div>
     <div class="log" id="log"></div>
   </section>
   </div>
@@ -1115,9 +1116,15 @@ $("install").onclick = async () => {
   try {
     const result = await api("install", options());
     for (const m of result.messages) log(m);
-    log("Installed. Start Deadlock to see it.", "ok");
+    log("Installed. Start Deadlock to see it, or test it in the Hero Sandbox.", "ok");
+    $("playTest").disabled = false;
   } catch (e) { log(e.message, "bad"); }
   busy();
+};
+
+$("playTest").onclick = async () => {
+  try { const r = await api("play", { hero: $("hero").value }); for (const m of r.messages) log(m, "ok"); }
+  catch (e) { log(e.message, "bad"); }
 };
 
 // --- sounds: play and replace a hero's voice lines, ability sounds, footsteps ---
