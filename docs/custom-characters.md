@@ -91,7 +91,7 @@ Drop a `.glb`, `.gltf` or `.obj` file onto `dlmod.exe`, or run `dlmod studio`. T
 
 1. **Hero**: pick the hero the model replaces. dlmod reads the hero's model from the game.
 2. **Model**: drop the model with its textures (`.png` or `.jpg`), `.mtl` or `.bin` files, or a `.zip` of them. The preview shows it over the hero.
-3. **Fit**: the model is scaled to the hero's height and stands on the hero's spot. Size, turn and offset sliders adjust it; *Z is up* is for `.obj` files exported Z-up.
+3. **Fit**: the model is scaled to the hero's height and stands on the hero's spot. Size (10 to 300% of the hero's height), turn and offset sliders (150 game units each way) adjust it, and the box beside each takes any value, past the slider too; *Z is up* is for `.obj` files exported Z-up.
 4. **Hero parts**: ticked parts stay (the gun by default); the rest are replaced.
 5. **Rig**: *Rig and check* gives every vertex the hero's bones; *Arms up*, *Arms down* and *Legs apart* bend the result to check it. Under *Advanced rig*, *Play the game's clip* plays any of the hero's own animation clips on your model. Melee, reloads and casts are laid over a movement clip through the bone mask the game uses for them (picked by the clip's name, and changeable), and the arms reach for the gun and the feet for the ground by two-bone IK, as the hero graph does. The game blends more layers than this, so the preview is close rather than exact.
 6. **Install**: builds the mod *Custom model: <hero>* and installs it. Importing again replaces it.

@@ -38,6 +38,7 @@ button.primary { background: var(--accent); color: #1a1407; border-color: var(--
 .row { display: grid; grid-template-columns: 64px 1fr 52px; align-items: center; gap: 8px; margin: 6px 0; }
 .row label { color: var(--dim); font-size: 12px; }
 .row output { font-variant-numeric: tabular-nums; text-align: right; font-size: 12px; }
+.row input.num { width: 52px; padding: 3px 4px; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; box-sizing: border-box; }
 input[type=range] { width: 100%; accent-color: var(--accent); }
 .buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .buttons button { flex: 1; font-size: 12px; padding: 5px 6px; }
@@ -339,11 +340,11 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 
   <section>
     <h2>3 · Fit</h2>
-    <div class="row"><label for="scale">Size</label><input type="range" id="scale" min="0.5" max="1.5" step="0.01" value="1"><output id="scaleOut">100%</output></div>
-    <div class="row"><label for="yaw">Turn</label><input type="range" id="yaw" min="-180" max="180" step="1" value="0"><output id="yawOut">0°</output></div>
-    <div class="row"><label for="offx">Forward</label><input type="range" id="offx" min="-20" max="20" step="0.5" value="0"><output id="offxOut">0</output></div>
-    <div class="row"><label for="offy">Sideways</label><input type="range" id="offy" min="-20" max="20" step="0.5" value="0"><output id="offyOut">0</output></div>
-    <div class="row"><label for="offz">Up</label><input type="range" id="offz" min="-20" max="20" step="0.5" value="0"><output id="offzOut">0</output></div>
+    <div class="row"><label for="scale">Size %</label><input type="range" id="scale" min="0.1" max="3" step="0.01" value="1"><input type="number" class="num" id="scaleOut" min="1" step="1" value="100" title="Size in percent of the hero's height: type any value"></div>
+    <div class="row"><label for="yaw">Turn °</label><input type="range" id="yaw" min="-180" max="180" step="1" value="0"><input type="number" class="num" id="yawOut" min="-180" max="180" step="1" value="0" title="Degrees"></div>
+    <div class="row"><label for="offx">Forward</label><input type="range" id="offx" min="-150" max="150" step="0.5" value="0"><input type="number" class="num" id="offxOut" step="0.5" value="0" title="Game units: type any value"></div>
+    <div class="row"><label for="offy">Sideways</label><input type="range" id="offy" min="-150" max="150" step="0.5" value="0"><input type="number" class="num" id="offyOut" step="0.5" value="0" title="Game units: type any value"></div>
+    <div class="row"><label for="offz">Up</label><input type="range" id="offz" min="-150" max="150" step="0.5" value="0"><input type="number" class="num" id="offzOut" step="0.5" value="0" title="Game units: type any value"></div>
     <div class="buttons">
       <button data-turn="-90">↺ 90°</button><button data-turn="90">↻ 90°</button><button data-turn="180">Face back</button>
       <button id="zup" title="Blender exports .obj files Z-up">Z is up: off</button>
@@ -648,8 +649,8 @@ function fitted() {
 }
 function refresh() {
   for (const id of ["scale", "yaw", "offx", "offy", "offz"]) {
-    const v = +$(id).value;
-    $(id + "Out").textContent = id === "scale" ? Math.round(v * 100) + "%" : id === "yaw" ? v + "°" : v;
+    const v = +$(id).value, box = $(id + "Out");
+    if (document.activeElement !== box) box.value = id === "scale" ? Math.round(v * 100) : v; // not while it is being typed in
   }
   $("zup").textContent = "Z is up: " + (state.zup ? "on" : "off");
   if (state.rig) { state.rig = null; $("rigInfo").textContent = "Settings changed: rig again to check."; $("bendButtons").hidden = true;
@@ -736,7 +737,18 @@ for (const target of [drop, $("view")]) {
 }
 
 // --- fit controls ---
-for (const id of ["scale", "yaw", "offx", "offy", "offz"]) $(id).oninput = refresh;
+for (const id of ["scale", "yaw", "offx", "offy", "offz"]) {
+  $(id).oninput = refresh;
+  // A typed value can go past the slider: the slider widens to take it.
+  $(id + "Out").onchange = $(id + "Out").oninput = () => {
+    const n = parseFloat($(id + "Out").value), slider = $(id);
+    if (!isFinite(n) || (id === "scale" && n <= 0)) return;
+    const v = id === "scale" ? n / 100 : n;
+    if (v < +slider.min) slider.min = v;
+    if (v > +slider.max) slider.max = v;
+    slider.value = v; refresh();
+  };
+}
 document.querySelectorAll("[data-turn]").forEach(b => b.onclick = () => {
   let v = +$("yaw").value + +b.dataset.turn; v = ((v + 180) % 360 + 360) % 360 - 180; $("yaw").value = v; refresh();
 });
