@@ -135,12 +135,11 @@ func iconFor(index *source2.VPKIndex, a *heroAssets, icon string) string {
 // hero, else they are the lines with a _quip line beside them in the text's section for the hero.
 func heroText(game Game, index *source2.VPKIndex, hero string, a *heroAssets) error {
 	data, err := os.ReadFile(filepath.Join(game.Citadel(), filepath.FromSlash(localizationFile("citadel_heroes", "english"))))
-	if errors.Is(err, os.ErrNotExist) {
-		return nil // no hero text: the prompts go without the hero's role and abilities
-	}
-	if err != nil {
+	if err != nil && !errors.Is(err, os.ErrNotExist) {
 		return err
 	}
+	// Without the hero text the abilities still come from the game's data, by key; the prompts go
+	// without the hero's role and what the abilities do.
 	tokens := parseTokens(string(data))
 	values := map[string]string{}
 	for _, t := range tokens {

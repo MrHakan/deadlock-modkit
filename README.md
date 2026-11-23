@@ -49,7 +49,7 @@ Then open [`meshy/haze/prompts.md`](meshy/haze/prompts.md), generate each step i
 dlmod apply meshy/haze
 ```
 
-Or do it all in one page: `dlmod studio` opens the **Create** tab, which asks a few questions about your character, runs each Meshy step with a progress bar and shows the pictures as they arrive, then rigs the 3D model on the hero and installs it. See [the character creator](docs/custom-characters.md#the-character-creator).
+Or do it all in one page: `dlmod studio` opens the **Create** tab, which asks a few questions about your character, runs each Meshy step with a progress bar and shows the pictures as they arrive, then rigs the 3D model on the hero and installs it. See [the character creator](docs/custom-characters.md#the-character-creator). The **Abilities** tab then shows each ability with the installed icons, effect colours and models next to the game's own, without starting the game ([checking abilities](docs/custom-characters.md#checking-abilities-without-the-game)).
 
 Each piece also has a command of its own (`dlmod model`, `select`, `image`, `icons`, `prop`, `paint`, `text`), and every piece can be switched off again in `dlmod list`. No Valve tools, Blender or Source 2 Viewer are needed: dlmod reads and writes the game's files itself.
 

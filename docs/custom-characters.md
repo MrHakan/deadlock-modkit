@@ -39,6 +39,18 @@ Everything is saved in `game/dlmod/characters/<hero>`: the answers, every result
 
 dlmod built with `go build -tags nomeshy` leaves the creator out; the Create tab then does not appear. The creator is meant to become a separate download later.
 
+## Checking abilities without the game
+
+The studio's **Abilities** tab shows the picked hero's four abilities the way the game will show them with the mods that are switched on, so a change can be checked without starting Deadlock:
+
+- the ability's name, line and description, and its values (cast range, duration, radius…) from the game's data;
+- its icon, the game's own next to the one in game now, with the mod it comes from;
+- the colours of its particle effects, before and after, when a mod such as *Custom effects* replaces them;
+- the models it throws or places, drawn from any side, next to the model a *Custom prop* mod puts in their place;
+- the sound events it plays.
+
+dlmod reads the installed mods the way the game does: when two switched-on mods replace one file, the one in the lower slot wins. *Read the mods again* refreshes the tab after installing or switching mods. Values an ability takes from its base class, such as some cooldowns, are not listed.
+
 ## The Meshy workspace
 
 [`meshy/`](../meshy/) has a folder for every hero (44 for build 6864) with everything needed to make a replacement with [Meshy](https://www.meshy.ai):

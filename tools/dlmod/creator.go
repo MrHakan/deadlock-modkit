@@ -214,17 +214,10 @@ func (s *studio) session(hero string) (*creatorSession, error) {
 
 // rebuildWorkspace writes the hero's workspace with the current concept and name.
 func (s *studio) rebuildWorkspace(c *creatorSession) error {
-	s.mu.Lock()
-	if s.workIndex == nil {
-		index, err := openWorkspaceIndex(s.game)
-		if err != nil {
-			s.mu.Unlock()
-			return fmt.Errorf("the game's files could not be read: %v", err)
-		}
-		s.workIndex = index
+	index, err := s.workspaceIndex()
+	if err != nil {
+		return err
 	}
-	index := s.workIndex
-	s.mu.Unlock()
 	a, err := gatherHero(s.game, index, c.state.Hero)
 	if err != nil {
 		return err

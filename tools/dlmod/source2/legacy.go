@@ -22,7 +22,7 @@ import (
 //	         instance step rate; 56 bytes
 //
 // Bit 0x4000000 of the element size is set when the data is NOT meshopt compressed; 0x8000000
-// marks zstd, which dlmod does not read.
+// marks zstd.
 
 const (
 	vbibPlain = 0x4000000
@@ -96,11 +96,14 @@ func decodeVBIB(block []byte) (vertex, index []legacyBuffer, err error) {
 			return b, errors.New("a buffer's data runs past the block")
 		}
 		raw := block[start : start+total]
+		if b.flags&vbibZstd != 0 { // zstd first, then meshopt unless the plain bit is set
+			if raw, err = DecodeZstd(raw, 0); err != nil {
+				return b, err
+			}
+		}
 		want := b.count * b.size
 		switch {
-		case b.flags&vbibZstd != 0:
-			return b, errors.New("a mesh buffer is zstd compressed, which dlmod does not read")
-		case b.flags&vbibPlain != 0 || total == want:
+		case b.flags&vbibPlain != 0 || len(raw) == want:
 			b.data = append([]byte{}, raw...)
 		case isVertex:
 			b.data, err = DecodeVertexBuffer(b.count, b.size, raw)
@@ -370,4 +373,34 @@ func (p *LegacyProp) Replace(positions, normals [][3]float32, uvs [][2]float32, 
 	}
 	out := &Resource{Version: p.Resource.Version, Blocks: blocks, Streaming: p.Resource.Streaming}
 	return out.Encode(), nil
+}
+
+// Triangles collects the prop's geometry, for previews.
+func (p *LegacyProp) Triangles() (Triangles, error) {
+	vb := p.vertex[0].vertexBuffer()
+	position := vb.Attribute("position", 0)
+	if position == nil {
+		return Triangles{}, errors.New("the mesh has no positions")
+	}
+	values, err := vb.Floats(position)
+	if err != nil {
+		return Triangles{}, err
+	}
+	var out Triangles
+	for _, v := range values {
+		out.Positions = append(out.Positions, [3]float32{v[0], v[1], v[2]})
+	}
+	ib := p.index[0]
+	if (ib.size != 2 && ib.size != 4) || len(ib.data) < ib.count*ib.size {
+		return Triangles{}, errors.New("the mesh's index buffer cannot be read")
+	}
+	buffer := IndexBuffer{Count: ib.count, Size: ib.size, Data: ib.data}
+	indices := buffer.Indices()
+	for t := 0; t+3 <= len(indices); t += 3 {
+		a, b, c := indices[t], indices[t+1], indices[t+2]
+		if n := uint32(len(out.Positions)); a < n && b < n && c < n {
+			out.Indices = append(out.Indices, a, b, c)
+		}
+	}
+	return out, nil
 }

@@ -146,6 +146,22 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 .bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .8s ease; }
 .bar.queue i { width: 30%; background: var(--accent-dim); animation: queue 1.5s ease-in-out infinite; }
 @keyframes queue { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+.abilities { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ability .head { display: flex; gap: 10px; align-items: center; }
+.ability .slot { width: 22px; height: 22px; border-radius: 50%; background: #23262e; display: grid; place-items: center; font-size: 11px; color: var(--dim); flex: none; }
+.ability p { margin: 0; font-size: 12px; color: var(--dim); line-height: 1.45; }
+.ability .quip { color: var(--text); font-style: italic; }
+.ability .values { display: flex; flex-wrap: wrap; gap: 4px; }
+.ability .values span { font-size: 11px; background: #23262e; border-radius: 6px; padding: 2px 7px; font-variant-numeric: tabular-nums; }
+.ability .pair { display: flex; flex-wrap: wrap; gap: 8px; }
+.ability figure { margin: 0; text-align: center; }
+.ability figcaption { font-size: 10px; color: var(--dim); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ability .icon { width: 64px; height: 64px; background: #0d0e11; border: 1px solid var(--line); border-radius: 8px; object-fit: contain; }
+.ability .prop { width: 120px; height: 120px; background: #0d0e11; border: 1px solid var(--line); border-radius: 8px; }
+.ability .strip { display: flex; height: 14px; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
+.ability .strip div { flex: 1; }
+.ability .label { font-size: 11px; color: var(--dim); margin-bottom: 3px; }
+.ability .mod { color: #8fd19e; }
 @media (max-width: 760px) { .pictures-grid { grid-template-columns: 1fr; } .tagins { grid-template-columns: 1fr; } }
 [hidden] { display: none !important; }
 @media (max-width: 760px) { html, body { height: auto; } .app { height: auto; grid-template-columns: 1fr; grid-template-rows: auto 80vh; }
@@ -163,7 +179,7 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <select id="hero"><option value="">Pick a hero…</option></select>
     <div class="info" id="heroInfo"></div>
     <nav class="tabs" id="tabs">
-      <button data-tab="create" id="createTabButton">Create</button><button data-tab="model" class="on">Model</button><button data-tab="sounds">Sounds</button>
+      <button data-tab="create" id="createTabButton">Create</button><button data-tab="model" class="on">Model</button><button data-tab="abilities">Abilities</button><button data-tab="sounds">Sounds</button>
       <button data-tab="images">Images</button><button data-tab="text">Text</button><button data-tab="effects">Effects</button>
     </nav>
   </section>
@@ -210,6 +226,16 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <div class="buttons"><button class="primary" id="crInstall" disabled>Install pictures</button></div>
     <div class="info" id="crFolder" style="margin-top:6px;word-break:break-all"></div>
     <div class="log" id="crLog"></div>
+  </section>
+  </div>
+
+  <div id="tab-abilities" hidden>
+  <section>
+    <h2>Abilities</h2>
+    <div class="info">The hero's four abilities as the game will show them with the mods that are switched on, without starting it: the icon, the colours of the effects and the models they throw or place, each next to the game's own. Nothing here changes the game.</div>
+    <div class="row"><label for="abYaw">Turn models</label><input type="range" id="abYaw" min="0" max="345" step="15" value="30"><output id="abYawOut">30°</output></div>
+    <div class="buttons"><button id="abRefresh">Read the mods again</button></div>
+    <div class="info" id="abNote"></div>
   </section>
   </div>
 
@@ -368,6 +394,10 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
   <div class="panel" id="imagesPanel" hidden>
     <div class="empty-panel" id="imagesEmpty">Pick a hero to see their images.</div>
     <div class="grid" id="imageGrid"></div>
+  </div>
+  <div class="panel" id="abilitiesPanel" hidden>
+    <div class="empty-panel" id="abilitiesEmpty">Pick a hero to see their abilities.</div>
+    <div class="abilities" id="abilityList"></div>
   </div>
   <div class="panel" id="effectsPanel" hidden>
     <div class="empty-panel" id="effectsEmpty">Pick a hero to see their effect colours.</div>
@@ -606,7 +636,7 @@ $("hero").onchange = async () => {
 const heroHooks = []; // tabs that show something of the hero reload when it changes
 
 // --- tabs: the model tab shows the 3D view, the others their own panel over it ---
-const panels = { create: "createPanel", sounds: "soundsPanel", images: "imagesPanel", text: "textPanel", effects: "effectsPanel" };
+const panels = { create: "createPanel", abilities: "abilitiesPanel", sounds: "soundsPanel", images: "imagesPanel", text: "textPanel", effects: "effectsPanel" };
 let tab = "model";
 function showTab(name) {
   tab = name;
@@ -1263,6 +1293,95 @@ $("fxRestore").onclick = async () => {
 };
 tabHooks.effects = [() => loadFx()];
 heroHooks.push(() => { if (tab === "effects") loadFx(true); });
+
+// --- abilities: each ability as the game will show it with the switched-on mods ---
+const ab = { hero: null, list: [], stamp: 0 };
+const abURL = (route, path, which, extra = "") =>
+  `/api/abilities/${route}?path=${encodeURIComponent(path)}&which=${which}&t=${TOKEN}${extra}&s=${ab.stamp}`;
+function abLabel(text) { const d = document.createElement("div"); d.className = "label"; d.textContent = text; return d; }
+function abFigure(src, caption, cls, mod) {
+  const f = document.createElement("figure");
+  const img = document.createElement("img"); img.className = cls; img.loading = "lazy"; img.src = src; img.alt = caption;
+  img.onerror = () => { img.style.visibility = "hidden"; };
+  const c = document.createElement("figcaption"); c.textContent = caption; c.title = caption;
+  if (mod) c.classList.add("mod");
+  f.append(img, c); return f;
+}
+function abStrip(colors) {
+  const s = document.createElement("div"); s.className = "strip";
+  for (const c of colors) {
+    const d = document.createElement("div"); d.style.background = css(c.color);
+    d.title = `rgb(${c.color.join(", ")}), used ${c.uses} times`; s.append(d);
+  }
+  return s;
+}
+function renderAbilities() {
+  const yaw = +$("abYaw").value; $("abYawOut").textContent = yaw + "°";
+  const list = $("abilityList"); list.innerHTML = "";
+  for (const a of ab.list) {
+    const card = document.createElement("div"); card.className = "card ability";
+    if (a.iconMod || a.recoloured || a.models.some(m => m.mod)) card.classList.add("replaced");
+    const head = document.createElement("div"); head.className = "head";
+    head.innerHTML = `<span class="slot"></span><h3></h3>`;
+    head.querySelector(".slot").textContent = a.slot; head.querySelector("h3").textContent = a.name;
+    card.append(head);
+    for (const [text, cls] of [[a.quip, "quip"], [a.description, ""]]) {
+      if (!text) continue;
+      const p = document.createElement("p"); p.className = cls; p.textContent = text; card.append(p);
+    }
+    if (a.values.length) {
+      const v = document.createElement("div"); v.className = "values";
+      for (const x of a.values) { const s = document.createElement("span"); s.textContent = `${x.label} ${x.value}`; v.append(s); }
+      card.append(v);
+    }
+    if (a.icon) {
+      const row = document.createElement("div"); row.className = "pair";
+      row.append(abFigure(abURL("icon", a.icon, "game"), "game", "icon"));
+      if (a.iconMod) row.append(abFigure(abURL("icon", a.icon, "yours"), a.iconMod, "icon", true));
+      card.append(abLabel(a.iconMod ? "Icon: the game's and the one in game now" : "Icon (the game's own)"), row);
+    }
+    if (a.particles) {
+      card.append(abLabel(`Effects: ${a.particles} particle systems, ` +
+        (a.recoloured ? `${a.recoloured} replaced by ${a.effectMods.join(", ")} (top: game, bottom: in game now)` : "none replaced")));
+      card.append(abStrip(a.before));
+      if (a.recoloured) card.append(abStrip(a.after));
+    }
+    if (a.models.length) {
+      const row = document.createElement("div"); row.className = "pair";
+      for (const m of a.models) {
+        const base = m.path.split("/").pop().replace(/\.vmdl$/, "");
+        row.append(abFigure(abURL("model", m.path, "game", `&yaw=${yaw}`), base, "prop"));
+        if (m.mod) row.append(abFigure(abURL("model", m.path, "yours", `&yaw=${yaw}`), m.mod, "prop", true));
+      }
+      card.append(abLabel("Models it throws or places"), row);
+    }
+    if (a.sounds && a.sounds.length) {
+      const p = document.createElement("p");
+      p.textContent = `Sounds: ${a.sounds.slice(0, 6).join(", ")}${a.sounds.length > 6 ? ` and ${a.sounds.length - 6} more` : ""}`;
+      card.append(p);
+    }
+    list.append(card);
+  }
+  $("abilitiesEmpty").hidden = ab.list.length > 0;
+}
+async function loadAbilities(force) {
+  const hero = $("hero").value;
+  if (!hero) return;
+  if (!force && ab.hero === hero) return renderAbilities();
+  $("abilitiesEmpty").textContent = "Reading the hero's abilities and the mods…"; $("abilitiesEmpty").hidden = false;
+  $("abilityList").innerHTML = "";
+  try {
+    const r = await api("abilities", { hero });
+    ab.hero = hero; ab.list = r.abilities; ab.stamp = Date.now(); $("abNote").textContent = r.note || "";
+    renderAbilities();
+    if (!ab.list.length) { $("abilitiesEmpty").textContent = "dlmod found no abilities for this hero."; $("abilitiesEmpty").hidden = false; }
+  } catch (e) { $("abilitiesEmpty").textContent = e.message; $("abilitiesEmpty").hidden = false; }
+}
+$("abYaw").oninput = () => { $("abYawOut").textContent = $("abYaw").value + "°"; };
+$("abYaw").onchange = () => renderAbilities();
+$("abRefresh").onclick = () => loadAbilities(true);
+tabHooks.abilities = [() => loadAbilities()];
+heroHooks.push(() => { if (tab === "abilities") loadAbilities(true); });
 
 // --- create: describe a character, make it with Meshy step by step, put it on the hero ---
 const cr = { hero: null, view: null, timer: null, edits: {} };

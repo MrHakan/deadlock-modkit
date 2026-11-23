@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path"
 	"sort"
+	"strconv"
 	"strings"
 	"sync"
 
@@ -158,8 +159,11 @@ func readGameAbility(index *source2.VPKIndex, key string, fields *source2.Value)
 		for i, name := range properties.Keys {
 			property := properties.Fields[i]
 			value := property.Get("m_strValue")
-			if value == nil || value.S == "" || value.S == "0" {
+			if value == nil || !shownValue(value.S) {
 				continue
+			}
+			if disabled := property.Get("m_strDisableValue"); disabled != nil && disabled.S == value.S {
+				continue // the game hides a value that equals its "disabled" value
 			}
 			entry := abilityValue{Name: name, Value: value.S}
 			if units := property.Get("m_eDisplayUnits"); units != nil {
@@ -212,4 +216,15 @@ func heroAbilityKeys(index *source2.VPKIndex, hero string) (keys [4]string, icon
 		return keys, icons, names, abilitiesFromTable
 	}
 	return keys, icons, names, ""
+}
+
+// shownValue leaves out values the game does not show: empty, zero or negative ("-1" marks an
+// unused value), with or without a unit such as "0m".
+func shownValue(value string) bool {
+	number := strings.TrimRightFunc(value, func(r rune) bool { return r < '0' || r > '9' })
+	parsed, err := strconv.ParseFloat(number, 64)
+	if err != nil {
+		return value != ""
+	}
+	return parsed > 0
 }
