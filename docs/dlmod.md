@@ -75,7 +75,7 @@ dlmod compiles the file into the game's sound format itself, with no Valve tools
 | `dlmod model <hero> <file>` | Put a model on a hero without the studio. |
 | `dlmod select <hero> [bg=… name=… logo=… tags=… colors=… scene=hide]` | Set the hero select screen for a replacement character. |
 | `dlmod image <game image> <picture>` / `dlmod icons <hero> [n=picture]` | Replace cards, portraits and ability icons. |
-| `dlmod prop <game model> <file>` / `dlmod paint <hero>` / `dlmod effects <hero> <#colour>` | Replace an ability model, recolour ability effects. |
+| `dlmod prop <game model> <file>` / `dlmod paint <hero> [#main,#accent,#glow]` / `dlmod effects <hero> <#colour>` | Replace an ability model, recolour ability effects (with up to three colours of your own, or the cobalt palette). |
 | `dlmod text KEY=VALUE` | Change a line of the English hero text. |
 | `dlmod meshy <hero or all> [folder] [concept=…]` / `dlmod apply <folder>` | Write per-hero Meshy prompts for a full replacement character, and install what was generated. |
 

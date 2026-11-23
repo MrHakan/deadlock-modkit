@@ -20,7 +20,7 @@ flowchart LR
 | Cards and portraits | Hero select grid, scoreboard, HUD, minimap | `dlmod image panorama/images/heroes/haze_card_psd.vtex_c card.png` | *Custom images* |
 | Ability icons | The ability bar | `dlmod icons haze 1=dagger.png` | *Custom images* |
 | Ability models | Thrown bombs, placed traps, statues | `dlmod prop models/abilities/ivy_thornbomb_model.vmdl bomb.glb` | *Custom prop: …* |
-| Ability effects | Particles, glows, trails | `dlmod paint haze` or `dlmod effects haze #7A3CFF` | *Custom effects* |
+| Ability effects | Particles, glows, trails | `dlmod paint haze #7A3CFF,#FFB020,#FFFFFF` (or a named palette) or `dlmod effects haze #7A3CFF` | *Custom effects* |
 | Wording | Hero name and any line of hero text | `dlmod text hero_haze:n=Shade` | *Custom text* |
 
 Each kind of piece goes into one mod, which dlmod rebuilds after every change, so switching a piece off or back on is one line in `dlmod list`. `dlmod select haze restore` and `dlmod effects haze restore` undo theirs.
@@ -33,7 +33,8 @@ The studio's **Create** tab (`dlmod studio`) does the whole thing from one page,
 2. **Describe your character.** Answer a few questions: its name, what it is (human, creature, robot, alien…), its body (arms and legs, round with no legs, four legs), its style, three colours, what it holds, anything else, and its three tags. dlmod writes the prompts for the picked hero from your answers and the hero's role, weapon and abilities; the description they use can be edited freely.
 3. **Make it, step by step.** Each step shows its price and asks before spending credits: the design sheet, then views from the front, side and back, then the 3D model (several views with `meshy-7.1`, or the front view with smart topology), then an optional Meshy rig for characters with arms and legs. While Meshy works, each result shows its place in Meshy's queue and a progress bar; finished pictures appear on the page. The first result of a step is kept; click another to keep that one instead, or make another.
 4. **Rig it on the hero.** *Open the model on the Model tab* loads the kept model, fits it to the hero and rigs it on the hero's bones right away, then plays the walk so you can check it. *Install on hero* puts it in the game.
-5. **Pictures.** The hero select art, the cards and portraits and one icon per ability are made from the design sheet the same way. *Install pictures* installs the kept ones with your name, tags and colours: the hero select screen (with the 3D scene hidden), the cards (green keyed out) and the icons (as white glyphs).
+5. **Pictures and ability models.** The hero select art, the cards and portraits and one icon per ability are made from the design sheet the same way. Each model an ability throws or places (a bomb, a trap, a statue) takes two steps: a picture of the object alone, drawn from the design sheet, then a small 3D model of that picture with smart topology (`meshy-t2.5`, 15 credits). *Install in the game* installs the kept ones with your name, tags and colours: the hero select screen (with the 3D scene hidden), the cards (green keyed out), the icons (as white glyphs) and the ability models in place of the game's. With *Recolour the hero's ability effects with my three colours* ticked, it also repaints the hero's ability effects in your colours (`dlmod paint <hero> #main,#accent,#glow`).
+
 
 Everything is saved in `game/dlmod/characters/<hero>`: the answers, every result, and the hero's workspace files, so closing dlmod loses nothing and `dlmod apply` can install the same folder.
 

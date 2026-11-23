@@ -127,14 +127,32 @@ type creatorSession struct {
 	work  *workspace
 }
 
-// creatorSteps are the workspace steps the creator runs, in the order the page shows them.
+// creatorSteps are the workspace steps the creator runs, in the order the page shows them. An
+// ability model is made from a picture, as the character's model is from its views: first the
+// object drawn alone from the design sheet (propimg_<name>), then a 3D model of that picture with
+// smart topology (prop_<name>).
 func creatorSteps(w *workspace) []workspaceStep {
 	var out []workspaceStep
 	for _, s := range w.Steps {
-		if s.ID == "weapon" || strings.HasPrefix(s.ID, "prop_") {
+		switch {
+		case s.ID == "weapon":
 			continue
+		case strings.HasPrefix(s.ID, "prop_"):
+			base := strings.TrimPrefix(s.ID, "prop_")
+			picture := s
+			picture.ID, picture.Title, picture.Kind = "propimg_"+base, "Ability model picture: "+base, "propimg"
+			picture.Tool, picture.AIModel, picture.Credits, picture.Aspect = "meshy_image_to_image", "nano-banana-pro", 9, "1:1"
+			picture.Reference, picture.Output, picture.Options = sheetFile, "assets/prop_"+base+".png", nil
+			picture.Prompt = "Draw only this object, in the style and colours of the character design sheet: alone, centered, " +
+				"in a three-quarter view, on a plain white background, with no characters and no text. " + s.Prompt
+			picture.Note = "The picture the ability model is made from."
+			model := s
+			model.Tool, model.AIModel, model.Credits, model.Reference = "meshy_image_to_3d", "meshy-t2.5", 15, picture.Output
+			model.Note = "Made from the picture with smart topology, then put in place of the game's model; dlmod pins it to the prop's root bone."
+			out = append(out, picture, model)
+		default:
+			out = append(out, s)
 		}
-		out = append(out, s)
 	}
 	return out
 }
@@ -147,6 +165,8 @@ func creatorKind(step workspaceStep, model string) string {
 		return "image-to-3d"
 	case step.ID == "model":
 		return "multi-image-to-3d"
+	case strings.HasPrefix(step.ID, "prop_"):
+		return "image-to-3d"
 	case step.ID == "rig":
 		return "rigging"
 	case step.ID == "design_sheet":
@@ -162,6 +182,9 @@ func creatorModels(step workspaceStep) []string {
 		return []string{"meshy-7.1", "meshy-t2.5"}
 	case "rig":
 		return []string{"meshyrig"}
+	}
+	if strings.HasPrefix(step.ID, "prop_") {
+		return []string{"meshy-t2.5", "meshy-7.1"}
 	}
 	return []string{"nano-banana-pro", "nano-banana-2", "nano-banana", "gpt-image-2"}
 }
@@ -288,6 +311,9 @@ func creatorNeeds(step string) string {
 	case "rig":
 		return "model"
 	}
+	if base, ok := strings.CutPrefix(step, "prop_"); ok {
+		return "propimg_" + base
+	}
 	return "design_sheet"
 }
 
@@ -317,6 +343,9 @@ func (c *creatorSession) view(s *studio) map[string]any {
 		case "model", "rig":
 			group = "model"
 		}
+		if strings.HasPrefix(st.ID, "prop_") || strings.HasPrefix(st.ID, "propimg_") {
+			group = "props"
+		}
 		needs := creatorNeeds(st.ID)
 		steps = append(steps, creatorStepView{
 			workspaceStep: st, Task: creatorKind(st, creatorModels(st)[0]), Models: models, Default: creatorModels(st)[0], Group: group, Needs: needs,
@@ -344,6 +373,7 @@ type creatorRequest struct {
 	Answers creatorAnswers `json:"answers"`
 	Concept string         `json:"concept"`
 	Key     string         `json:"key"`
+	Effects bool           `json:"effects"` // install: recolour the hero's effects with the character's colours
 }
 
 func (s *studio) creatorRequest(r *http.Request) (creatorRequest, *creatorSession, error) {
@@ -510,8 +540,15 @@ func (s *studio) creatorRun(r *http.Request) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		polycount := 30000
+		switch n := step.Options["target_polycount"].(type) { // ability models are small and many
+		case int:
+			polycount = n
+		case float64:
+			polycount = int(n)
+		}
 		body = map[string]any{"image_url": ref, "ai_model": model, "texture_model": "meshy-n1", "should_texture": true,
-			"target_polycount": 30000}
+			"target_polycount": polycount}
 	case "rigging":
 		body = map[string]any{"input_task_id": base.TaskID, "height_meters": 1.7}
 	}
@@ -773,7 +810,7 @@ func (s *studio) creatorImport(r *http.Request) (any, error) {
 // creatorInstall installs the kept hero select art, cards and icons, with the name, tags and
 // colours from the answers.
 func (s *studio) creatorInstall(r *http.Request) (any, error) {
-	_, c, err := s.creatorRequest(r)
+	req, c, err := s.creatorRequest(r)
 	if err != nil {
 		return nil, err
 	}
@@ -785,12 +822,38 @@ func (s *studio) creatorInstall(r *http.Request) (any, error) {
 		return nil, err
 	}
 	c.mu.Lock()
-	w, dir := c.work, c.dir
+	w, dir, hero, colors := c.work, c.dir, c.state.Hero, append([]string{}, c.state.Answers.Colors...)
 	c.mu.Unlock()
 	p := &webPrompter{}
 	done, err := installPictures(p, store, s.game, w, dir)
 	if err != nil {
 		return nil, err
+	}
+	// The ability models kept so far, each in place of the game's.
+	for _, st := range creatorSteps(w) {
+		file := filepath.Join(dir, filepath.FromSlash(st.Output))
+		if !strings.HasPrefix(st.ID, "prop_") || !fileExists(file) {
+			continue
+		}
+		if err := propCommand(p, store, s.game, []string{st.Target, file}, options{}); err != nil {
+			return nil, err
+		}
+		done++
+	}
+	// The hero's ability effects in the character's colours.
+	var palette []string
+	for _, c := range colors {
+		if _, ok := parseHex(c); ok {
+			palette = append(palette, c)
+		}
+	}
+	if req.Effects && len(palette) > 0 {
+		// The rest is installed already; effects that cannot be recoloured do not undo it.
+		if err := paintCommand(p, store, s.game, []string{hero, strings.Join(palette[:min(3, len(palette))], ",")}, options{}); err != nil {
+			p.say("The effects were not recoloured: %v", err)
+		} else {
+			done++
+		}
 	}
 	if err := ensurePatched(p, s.game); err != nil {
 		return nil, err

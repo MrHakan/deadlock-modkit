@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"image/color"
@@ -30,14 +31,46 @@ var CobaltPalette = ColorPalette{
 	Glow:    [3]float64{0x7A, 0xB6, 0xFF}, // #7AB6FF
 }
 
-// LookupPalette finds a built-in palette by name (defaulting to "cobalt" when empty).
+// LookupPalette finds a built-in palette by name (defaulting to "cobalt" when empty), or makes
+// one from colours such as "#2467FF,#FF3B3B,#7AB6FF".
 func LookupPalette(name string) (ColorPalette, error) {
+	if strings.Contains(name, "#") {
+		return paletteFromColors(name)
+	}
 	switch strings.ToLower(strings.TrimSpace(name)) {
 	case "", "cobalt":
 		return CobaltPalette, nil
 	default:
-		return ColorPalette{}, fmt.Errorf("unknown palette %q (supported: cobalt)", name)
+		return ColorPalette{}, fmt.Errorf("unknown palette %q (use cobalt, or one to three colours such as #2467FF,#FF3B3B,#7AB6FF)", name)
 	}
+}
+
+// paletteFromColors makes a palette from one to three colours: the main colour, an accent and a
+// glow. A missing accent repeats the main colour; a missing glow is the main colour lightened.
+func paletteFromColors(text string) (ColorPalette, error) {
+	var colors [][3]float64
+	for _, part := range strings.Split(text, ",") {
+		if part = strings.TrimSpace(part); part == "" {
+			continue
+		}
+		c, ok := parseHex(part)
+		if !ok {
+			return ColorPalette{}, fmt.Errorf("%q is not a colour like #2467FF", part)
+		}
+		colors = append(colors, c)
+	}
+	if len(colors) == 0 || len(colors) > 3 {
+		return ColorPalette{}, errors.New("give one to three colours, such as #2467FF,#FF3B3B,#7AB6FF")
+	}
+	p := ColorPalette{Name: strings.ReplaceAll(strings.TrimSpace(text), " ", ""), Primary: colors[0], Accent: colors[0],
+		White: [3]float64{0xF5, 0xF5, 0xF5}, Glow: lerpRGB(colors[0], [3]float64{255, 255, 255}, 0.45)}
+	if len(colors) > 1 {
+		p.Accent = colors[1]
+	}
+	if len(colors) > 2 {
+		p.Glow = colors[2]
+	}
+	return p, nil
 }
 
 func smoothstep(edge0, edge1, x float64) float64 {

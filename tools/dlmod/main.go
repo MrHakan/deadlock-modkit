@@ -52,7 +52,7 @@ Usage:
   dlmod apply <workspace folder>  install the generated files of a hero's Meshy workspace
   dlmod prop <game model> <file> [particle ...] [-scale 1]  put a model in place of an ability prop (a thrown bomb)
   dlmod effects <hero> <#rrggbb|palette> [strength|name]  recolour a hero's ability and weapon particles (or: restore)
-  dlmod paint <hero> [palette|restore] [-skip NAME]  repaint a hero's ability particles, materials and textures
+  dlmod paint <hero> [palette|#a,#b,#c|restore] [-skip NAME]  repaint a hero's ability particles, materials and textures
   dlmod profile                list profiles (named sets of mods)
   dlmod profile save <name>    remember which mods are on now
   dlmod profile use <name>     switch on exactly the mods in a profile

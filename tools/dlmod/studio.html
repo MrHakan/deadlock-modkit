@@ -229,8 +229,9 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
   </section>
   <section>
     <h2>Install</h2>
-    <div class="info">The 3D model goes to the Model tab to be rigged and installed. The hero select art, cards and icons you keep install here, with the name, tags and colours above.</div>
-    <div class="buttons"><button class="primary" id="crInstall" disabled>Install pictures</button></div>
+    <div class="info">The 3D model goes to the Model tab to be rigged and installed. The hero select art, cards, icons and ability models you keep install here, with the name, tags and colours above.</div>
+    <label class="info" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="crEffects" checked> Recolour the hero's ability effects with my three colours</label>
+    <div class="buttons"><button class="primary" id="crInstall" disabled>Install in the game</button></div>
     <div class="info" id="crFolder" style="margin-top:6px;word-break:break-all"></div>
     <div class="log" id="crLog"></div>
   </section>
@@ -439,6 +440,9 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
       <div class="gen-group"><h2>3D model</h2><div class="gen-stack" id="stepsModel"></div>
         <div class="buttons" style="margin-top:10px"><button class="primary" id="crImport" disabled>Open the model on the Model tab and rig it on the hero</button></div></div>
       <div class="gen-group"><h2>Pictures for the game</h2><div class="pictures-grid" id="stepsPictures"></div></div>
+      <div class="gen-group" id="propsGroup"><h2>Ability models</h2>
+        <div class="info" style="margin-bottom:8px">Bombs, traps and statues the abilities throw or place: a picture of each from the design sheet, then a 3D model of it.</div>
+        <div class="pictures-grid" id="stepsProps"></div></div>
     </div>
   </div>
   <div class="toggles">
@@ -1586,7 +1590,8 @@ function renderCreator() {
   $("createEmpty").hidden = !!v; $("createSteps").hidden = !v;
   if (!v) return;
   $("crFolder").textContent = "Saved in " + v.folder;
-  const groups = { character: $("stepsCharacter"), model: $("stepsModel"), pictures: $("stepsPictures") };
+  const groups = { character: $("stepsCharacter"), model: $("stepsModel"), pictures: $("stepsPictures"), props: $("stepsProps") };
+  $("propsGroup").hidden = !v.steps.some(s => s.group === "props");
   for (const g of Object.values(groups)) g.innerHTML = "";
   for (const st of v.steps) groups[st.group].append(stepCard(st));
   updateCreator();
@@ -1661,6 +1666,9 @@ function updateCreator() {
   const keptPictures = pictures.filter(s => kept(s.id)).length;
   const marks = [["Describe", !!v.concept], ["Design sheet", kept("design_sheet")], ["Views", kept("turnaround")],
     ["3D model", kept("model")], ["Rig", kept("rig")], [`Pictures ${keptPictures}/${pictures.length}`, keptPictures === pictures.length]];
+  const props = v.steps.filter(s => s.group === "props" && s.id.startsWith("prop_"));
+  const keptProps = props.filter(s => kept(s.id)).length;
+  if (props.length) marks.push([`Ability models ${keptProps}/${props.length}`, keptProps === props.length]);
   $("stepper").innerHTML = "";
   let current = false;
   for (const [label, done] of marks) {
@@ -1669,7 +1677,7 @@ function updateCreator() {
     $("stepper").append(chip);
   }
   $("crImport").disabled = !(kept("model") || kept("rig"));
-  $("crInstall").disabled = keptPictures === 0;
+  $("crInstall").disabled = keptPictures === 0 && keptProps === 0;
 }
 async function runStep(st, model) {
   const price = st.models[model];
@@ -1722,8 +1730,8 @@ $("crImport").onclick = async () => {
   busy();
 };
 $("crInstall").onclick = async () => {
-  busy("Installing the hero select screen, cards and icons…");
-  try { const r = await api("creator/install", { hero: cr.hero }); for (const m of r.messages) crLog(m, "ok"); }
+  busy("Installing the hero select screen, cards, icons and ability models…");
+  try { const r = await api("creator/install", { hero: cr.hero, effects: $("crEffects").checked }); for (const m of r.messages) crLog(m, "ok"); }
   catch (e) { crLog(e.message, "bad"); }
   busy();
 };

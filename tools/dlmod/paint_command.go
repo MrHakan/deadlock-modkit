@@ -42,7 +42,7 @@ type paintedTexture struct {
 // and weapon particles, hero-exclusive materials, and their colour textures (including ability
 // prop model textures such as Ivy's bramble vines) with a multi-tone palette (default: cobalt),
 // packing them into the "Custom effects" mod.
-func paintCommand(ui *UI, store *Store, game Game, args []string, opts options) error {
+func paintCommand(ui prompter, store *Store, game Game, args []string, opts options) error {
 	if len(args) < 1 {
 		return errors.New("name a hero, for example: dlmod paint ivy (or: dlmod paint ivy restore)")
 	}

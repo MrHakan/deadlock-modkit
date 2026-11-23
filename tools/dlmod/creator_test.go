@@ -120,7 +120,9 @@ func (f *fakeMeshy) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	game := newFakeGame(t)
 	game.write("game/citadel/pak01_dir.vpk", source2.WriteVPK(map[string][]byte{
-		heroModels["wraith"] + "_c": source2.SampleHero(),
+		heroModels["wraith"] + "_c":           source2.SampleHero(),
+		"models/abilities/wraith_card.vmdl_c": source2.SampleHero(), // an ability model, to make one for
+		tagStyles:                             (&source2.Resource{Blocks: []source2.Block{{Type: "DATA", Data: append(make([]byte, 6), ".heroTag {}"...)}}}).Encode(),
 	}))
 	fake := &fakeMeshy{bodies: map[string]map[string]any{}, kinds: map[string]string{}, looks: map[string]int{}}
 	meshy := httptest.NewServer(fake)
@@ -250,6 +252,26 @@ func TestCreatorMakesACharacterWithMeshy(t *testing.T) {
 	if s.mesh == nil || s.fileName != "rook.glb" {
 		t.Fatal("the model is not loaded in the studio")
 	}
+	// An ability model: a picture of it from the design sheet, then a small 3D model of the picture.
+	picture := run("propimg_wraith_card", "")
+	body = fake.bodies[picture.TaskID]
+	if fake.kinds[picture.TaskID] != "image-to-image" || !strings.Contains(body["prompt"].(string), "Draw only this object") ||
+		!fileExists(filepath.Join(dir, "assets", "prop_wraith_card.png")) {
+		t.Fatalf("prop picture %s %v", fake.kinds[picture.TaskID], body)
+	}
+	prop := run("prop_wraith_card", "")
+	body = fake.bodies[prop.TaskID]
+	if fake.kinds[prop.TaskID] != "image-to-3d" || body["target_polycount"] != float64(10000) || body["ai_model"] != "meshy-t2.5" ||
+		!strings.HasPrefix(body["image_url"].(string), "data:image/png;base64,") || !fileExists(filepath.Join(dir, "assets", "prop_wraith_card.glb")) {
+		t.Fatalf("prop model %s %v", fake.kinds[prop.TaskID], body)
+	}
+	if code, body := call("creator/install", map[string]any{"hero": "wraith", "effects": true}, nil); code != 200 {
+		t.Fatalf("install: %d %s", code, body)
+	}
+	if !game.hasMod(t, "Custom prop: wraith_card.vmdl") {
+		t.Fatal("the ability model was not installed")
+	}
+
 	// The creation is kept on disk, with the workspace dlmod apply reads.
 	if w, err := readWorkspace(dir); err != nil || w.Concept != v.Concept || w.Select.Name != "Rook" {
 		t.Fatalf("workspace %+v %v", w, err)
