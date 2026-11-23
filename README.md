@@ -64,7 +64,7 @@ Putting a character that looks nothing like the hero into the game showed how De
 
 ## dlmod in 30 seconds
 
-1. From [GitHub Releases](https://github.com/MrHakan/deadlock-modkit/releases), download `dlmod-windows-amd64.exe` (on Linux, `dlmod-linux-amd64`).
+1. From [GitLab Releases](https://gitlab.com/mrhakan/deadlock-modkit/-/releases), download `dlmod-windows-amd64.exe` (on Linux, `dlmod-linux-amd64`).
 2. Close Deadlock and drag any mod (`.zip`, `.rar`, `.7z` or `.vpk`) onto it.
 3. Start Deadlock.
 
@@ -74,7 +74,7 @@ Double-click dlmod to see every mod, switch them on and off, browse mods online 
 
 Close Deadlock first, and use one install method only: two tools editing the same game fight over `gameinfo.gi`.
 
-**With dlmod.** Download the HUD ZIP and dlmod from [GitHub Releases](https://github.com/MrHakan/deadlock-modkit/releases), drag the ZIP onto dlmod, and start Deadlock. `u` in dlmod (or `dlmod update`) installs the HUD built for your game build later.
+**With dlmod.** Download the HUD ZIP and dlmod from [GitLab Releases](https://gitlab.com/mrhakan/deadlock-modkit/-/releases), drag the ZIP onto dlmod, and start Deadlock. `u` in dlmod (or `dlmod update`) installs the HUD built for your game build later.
 
 **With Deadlock Mod Manager.** In Deadlock Mod Manager v2.3.0, open **Mods Library → Add Local Mod**, import the ZIP, enable it and launch Deadlock through Mod Manager.
 
@@ -137,7 +137,7 @@ node --test test/intelligence.test.js
 python -m unittest discover -s test -v
 ```
 
-`update_counter_stats.py` makes 90 API requests and takes a few minutes; `--cache DIR` keeps the raw responses. `patch_notes.py` downloads about 17 MB of game data; `--notes-only` skips that. Building the VPK and the release workflows are described in [Counter Intelligence](docs/counter-intelligence.md#build-the-vpk).
+`update_counter_stats.py` makes 90 API requests and takes a few minutes; `--cache DIR` keeps the raw responses. `patch_notes.py` downloads about 17 MB of game data; `--notes-only` skips that. Building the VPK and the release pipelines are described in [Counter Intelligence](docs/counter-intelligence.md#build-the-vpk).
 
 ## References
 

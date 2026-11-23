@@ -1,0 +1,151 @@
+# Pipelines:
+# - Every push and merge request runs the tests.
+# - A version tag (v1.2.3) builds the HUD and dlmod and publishes a release with the notes in
+#   release-notes/<tag>.md (tools/publish-release.sh).
+# - The daily schedule (Build → Pipeline schedules, on main) follows game updates: when
+#   Deadlock's client build changes it refreshes the catalog and the match data, runs the HUD
+#   tests and a build against the new stock HUD, commits to main and pushes the next patch tag,
+#   which starts the release. An interface mod built for an older game build can stop the game
+#   from starting, so releases have to follow game updates. It pushes with RELEASE_TOKEN, a
+#   masked CI/CD variable holding a project access token with the write_repository scope and a
+#   role that may push to main. Run it by hand with "Run pipeline" and the variable
+#   GAME_UPDATE=true (add FORCE=true to release even if the build did not change).
+
+workflow:
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "merge_request_event"
+    - if: $CI_COMMIT_BRANCH && $CI_OPEN_MERGE_REQUESTS
+      when: never
+    - if: $CI_COMMIT_BRANCH || $CI_COMMIT_TAG
+
+variables:
+  STOCK: https://raw.githubusercontent.com/SteamTracking/GameTracking-Deadlock/master/game/citadel
+
+stages: [test, build, release]
+
+.tests:
+  stage: test
+  rules:
+    - if: $CI_PIPELINE_SOURCE == "schedule" || $GAME_UPDATE == "true"
+      when: never
+    - when: on_success
+
+.on-version-tag:
+  rules:
+    - if: $CI_COMMIT_TAG =~ /^v\d+\.\d+\.\d+$/
+
+hud:
+  extends: .tests
+  image: node:22 # includes Python 3 and curl
+  script:
+    - node --test test/intelligence.test.js
+    - python3 -m unittest discover -s test -v
+    - curl -fsSL "$STOCK/pak01_dir/panorama/layout/hud.xml" -o stock-hud.xml
+    - python3 tools/build.py --hud-xml stock-hud.xml --output dist/check.zip
+
+dlmod:
+  extends: .tests
+  image: golang:1.24
+  script:
+    - cd tools/dlmod
+    - unformatted=$(gofmt -l .); test -z "$unformatted" || { echo "Run gofmt on $unformatted"; exit 1; }
+    - go vet ./...
+    - GOOS=windows go vet ./...
+    - go vet -tags nomeshy ./...
+    - go test ./...
+    - GOOS=windows GOARCH=amd64 go build -trimpath -o /dev/null .
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -o /dev/null .
+
+release-hud:
+  extends: .on-version-tag
+  stage: build
+  image: node:22
+  script:
+    - test -f "release-notes/$CI_COMMIT_TAG.md" || { echo "Missing release-notes/$CI_COMMIT_TAG.md"; exit 1; }
+    - curl -fsSL "$STOCK/steam.inf" -o steam.inf
+    - curl -fsSL "$STOCK/pak01_dir/panorama/layout/hud.xml" -o stock-hud.xml
+    - live=$(sed -n 's/^ClientVersion=\([0-9]*\).*/\1/p' steam.inf)
+    - catalog=$(python3 -c "import json; print(json.load(open('src/catalog.json'))['clientVersion'])")
+    - echo "Live build $live, catalog build $catalog"
+    - test "$live" = "$catalog" || { echo "The stock HUD is build $live but the catalog is $catalog"; exit 1; }
+    - python3 tools/build.py --hud-xml stock-hud.xml --output "dist/deadlock-counter-intelligence-$catalog-hud-en.zip"
+  artifacts:
+    paths: [dist/]
+    expire_in: 1 day
+
+release-dlmod:
+  extends: .on-version-tag
+  stage: build
+  image: golang:1.24
+  script:
+    - cd tools/dlmod
+    - flags="-s -w -X main.version=$CI_COMMIT_TAG"
+    - GOOS=windows GOARCH=amd64 go build -trimpath -ldflags "$flags" -o ../../dist/dlmod-windows-amd64.exe .
+    - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$flags" -o ../../dist/dlmod-linux-amd64 .
+  artifacts:
+    paths: [dist/]
+    expire_in: 1 day
+
+publish:
+  extends: .on-version-tag
+  stage: release
+  image: alpine:3.20
+  needs: [hud, dlmod, release-hud, release-dlmod]
+  script:
+    - apk add --no-cache curl jq
+    - sh tools/publish-release.sh
+
+game-update:
+  stage: release
+  image: node:22
+  rules:
+    - if: ($CI_PIPELINE_SOURCE == "schedule" || $GAME_UPDATE == "true") && $CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH
+  resource_group: game-update
+  variables:
+    GIT_DEPTH: 0 # tags, to pick the next version
+  script:
+    - live=$(curl -fsSL "$STOCK/steam.inf" | sed -n 's/^ClientVersion=\([0-9]*\).*/\1/p')
+    - catalog=$(python3 -c "import json; print(json.load(open('src/catalog.json'))['clientVersion'])")
+    - echo "Live build ${live:-unknown}, catalog build $catalog"
+    - case "$live" in ''|*[!0-9]*) echo "Could not read the live game build"; exit 1 ;; esac
+    - if [ "$live" = "$catalog" ] && [ "${FORCE:-}" != "true" ]; then echo "No game update"; exit 0; fi
+    - test -n "${RELEASE_TOKEN:-}" || { echo "Set the RELEASE_TOKEN CI/CD variable (see .gitlab-ci.yml)"; exit 1; }
+    # deadlock-api can lag a few hours behind a game update; tomorrow's run tries again.
+    - |
+      if ! python3 tools/update_catalog.py "$live"; then
+        echo "deadlock-api has no catalog for build $live yet; trying again on the next run"
+        exit 0
+      fi
+    - python3 tools/update_counter_stats.py
+    # A release must not wait on the game-data comparison: an outdated HUD can stop the game from starting.
+    - python3 tools/patch_notes.py || python3 tools/patch_notes.py --notes-only
+    - sed -i -E "s/client build \*\*[0-9]+\*\*/client build **$live**/; s/update_catalog\.py [0-9]+/update_catalog.py $live/" README.md
+    - node --test test/intelligence.test.js
+    - python3 -m unittest discover -s test -v
+    - curl -fsSL "$STOCK/pak01_dir/panorama/layout/hud.xml" -o stock-hud.xml
+    - python3 tools/build.py --hud-xml stock-hud.xml --output dist/check.zip
+    - git fetch --tags --quiet origin
+    - last=$(git tag --list 'v*' --sort=-v:refname | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | head -n 1)
+    - next=$(python3 -c "import sys; major, minor, patch = sys.argv[1].lstrip('v').split('.'); print(f'v{major}.{minor}.{int(patch) + 1}')" "${last:-v0.0.0}")
+    - patch=$(python3 -c "import json; p = json.load(open('src/stats.json')).get('patch'); print(p['title'] if p else 'the last 30 days')")
+    - window=$(python3 -c "import json; w = json.load(open('src/stats.json'))['window']; print(w['from'] + ' to ' + w['to'])")
+    - |
+      {
+        echo "# $next · Update for Deadlock build $live"
+        echo
+        echo "Automatic update for Deadlock client build **$live**, made by the game update pipeline."
+        echo
+        echo "- The HUD is built from the build $live stock interface. An interface mod built for an older game build can stop the game from starting, so update the mod after every game update."
+        echo "- The item catalog and the match data are refreshed. Match data covers $window (since $patch)."
+        echo "- Heroes and items changed by patches the counter table has not been reviewed for, or by value changes in the game data that no patch note mentions, are marked **PATCHED** in the HUD; hover the mark to see what changed."
+        echo "- \`dlmod update\` (or \`u\` in dlmod's full-screen view) downloads this HUD for the installed game build and replaces the old one."
+        echo
+        echo "Every test passed and the mod was built against the new stock HUD before this release was published. Display in Deadlock is not verified automatically."
+      } > "release-notes/$next.md"
+    - git config user.name "Game update"
+    - git config user.email "noreply@gitlab.com"
+    - git checkout -B "$CI_DEFAULT_BRANCH"
+    - git add src/catalog.json src/stats.json src/patches.json docs/counter-data.md README.md "release-notes/$next.md"
+    - git commit -m "Update for Deadlock build $live" -m "Refreshed catalog and match data ($window). Release notes for $next."
+    - git tag "$next"
+    - git push "https://release-bot:${RELEASE_TOKEN}@${CI_SERVER_HOST}/${CI_PROJECT_PATH}.git" "HEAD:$CI_DEFAULT_BRANCH" "refs/tags/$next"

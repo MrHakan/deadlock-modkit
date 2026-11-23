@@ -66,7 +66,7 @@ dlmod compiles the file into the game's sound format itself, with no Valve tools
 | `dlmod remove <mod>` | Delete a mod. |
 | `dlmod patch` / `dlmod unpatch` | Add or remove dlmod's `gameinfo.gi` lines. `unpatch` restores Valve's file exactly. |
 | `dlmod play` | Patch if needed, then start Deadlock through Steam. |
-| `dlmod update` | Download the Counter Intelligence HUD built for the installed game build from GitHub Releases, check it against GitHub's published SHA-256, and install it in place of the old version. |
+| `dlmod update` | Download the Counter Intelligence HUD built for the installed game build from the project's [GitLab releases](https://gitlab.com/mrhakan/deadlock-modkit/-/releases), check it against the `.sha256` file published with it (a release without one is refused), and install it in place of the old version. |
 | `dlmod search <words> [-hero H] [-category C]` | Search the online catalog, for example `dlmod search -hero wraith` or `dlmod search catgirl`. |
 | `dlmod get <id or GameBanana address>` | Download and install a mod, for example `dlmod get https://gamebanana.com/mods/634614`. |
 | `dlmod profile save <name>` / `use <name>` / `delete <name>` | Remember which mods are on, switch on exactly that set later (everything else is switched off, not deleted), or forget a profile. `dlmod profile` lists them. |

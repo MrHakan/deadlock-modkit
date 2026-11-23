@@ -61,7 +61,7 @@ The recommendation engine, HUD state changes, and archive format are covered by 
 
 ## Catalog
 
-The catalog in `src/catalog.json` holds the shop items and heroes of one game build (the build is in the main README, which the daily workflow updates). The HUD displays English names; Turkish aliases help match item and hero names read from the game client, and ambiguous labels are skipped. When targeting a new build, refresh the catalog with `tools/update_catalog.py <build>` and use the stock HUD from that build.
+The catalog in `src/catalog.json` holds the shop items and heroes of one game build (the build is in the main README, which the daily game update pipeline updates). The HUD displays English names; Turkish aliases help match item and hero names read from the game client, and ambiguous labels are skipped. When targeting a new build, refresh the catalog with `tools/update_catalog.py <build>` and use the stock HUD from that build.
 
 ## Build the VPK
 
@@ -73,9 +73,11 @@ py -3 tools/build.py --deadlock-dir "C:\Program Files (x86)\Steam\steamapps\comm
 
 If you already have the extracted stock layout, use `--hud-xml path/to/hud.xml`. [GameTracking-Deadlock](https://github.com/SteamTracking/GameTracking-Deadlock/blob/master/game/citadel/pak01_dir/panorama/layout/hud.xml) publishes it for the live build. The build produces `dist/deadlock-counter-intelligence-experimental.zip` with one `pak01_dir.vpk` inside.
 
-`.github/workflows/game-update.yml` runs every day. When Deadlock's client build changes, it refreshes the catalog, the match data and the patch warnings (from the notes and from the game data), runs every test, builds the mod against the new stock HUD, commits the update to `main`, and starts the release workflow for the next patch version, so a HUD for the new build is usually available within a day of a game update. If deadlock-api does not have the new build yet, it tries again the next day; if a test or the build fails, nothing is released. It can also be run from the Actions tab.
+The project lives on [GitLab](https://gitlab.com/mrhakan/deadlock-modkit), and [`.gitlab-ci.yml`](../.gitlab-ci.yml) runs its pipelines:
 
-`.github/workflows/release.yml` publishes releases. It runs when a `v*` tag is pushed, or from the Actions tab: choose **Release → Run workflow** and enter a version such as `v0.2.0`, and it creates the tag on the commit it builds. It runs the tests, builds the ZIP from the GameTracking layout (and stops if that layout is from a different build than the catalog), builds dlmod for Windows and Linux, and publishes a release with the notes in `.github/release-notes/<version>.md`.
+- **Tests** run on every push and merge request: the HUD tests, a build against the live stock HUD, and dlmod's format check, vet and tests.
+- **Releases.** Pushing a version tag such as `v0.6.0` runs the tests, builds the ZIP from the GameTracking layout (and stops if that layout is from a different build than the catalog), builds dlmod for Windows and Linux, and publishes a release with the notes in `release-notes/<version>.md` ([`tools/publish-release.sh`](../tools/publish-release.sh)). Every file goes to the project's package registry with a `.sha256` file next to it, as `sha256sum` writes it; `dlmod update` refuses a HUD whose release has none. To publish a file by hand, add `sha256sum <file> > <file>.sha256` (or, in PowerShell, `(Get-FileHash <file>).Hash > <file>.sha256`) to the release as well.
+- **Game updates.** A daily pipeline schedule on `main` checks Deadlock's client build. When it changes, the pipeline refreshes the catalog, the match data and the patch warnings (from the notes and from the game data), runs the HUD tests, builds the mod against the new stock HUD, commits the update to `main` and pushes the next patch tag, which starts the release, so a HUD for the new build is usually available within a day of a game update. If deadlock-api does not have the new build yet, it tries again the next day; if a test or the build fails, nothing is released. It pushes with `RELEASE_TOKEN`, a masked CI/CD variable holding a project access token with the `write_repository` scope. Run it by hand with **Build → Pipelines → Run pipeline** and the variable `GAME_UPDATE=true` (add `FORCE=true` to release even if the build did not change).
 
 ## Testing in game
 
