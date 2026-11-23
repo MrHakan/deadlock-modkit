@@ -258,6 +258,9 @@ func heroTextKeys(game Game, hero string) (nameKeys []string, tagKeys [3]string,
 	}
 	for _, file := range textFiles {
 		data, err := os.ReadFile(filepath.Join(game.Citadel(), filepath.FromSlash(localizationFile(file, "english"))))
+		if errors.Is(err, os.ErrNotExist) {
+			continue
+		}
 		if err != nil {
 			return nil, tagKeys, err
 		}
@@ -331,7 +334,7 @@ func selectTextEdits(game Game, hero string, name string, tags []string) (*textP
 
 // selectCommand: dlmod select <hero> [bg=picture] [name=TEXT] [logo=file.svg] [tags=A,B,C]
 // [colors=#rrggbb,...] [scene=hide|show], or dlmod select <hero> restore.
-func selectCommand(ui *UI, game Game, args []string) error {
+func selectCommand(ui prompter, game Game, args []string) error {
 	if len(args) == 0 {
 		return errors.New("name a hero, for example: dlmod select ivy bg=select.png name=SHADE tags=Sneaky,Swift,Deadly colors=#7A3CFF,#FFB020 scene=hide")
 	}
@@ -482,7 +485,7 @@ func has(index *source2.VPKIndex, file string) bool {
 
 // dropFromImages takes pictures the Hero select mod now holds (a background) out of the Custom
 // images mod, so the two mods do not change the same file.
-func dropFromImages(ui *UI, game Game, files map[string][]byte) error {
+func dropFromImages(ui prompter, game Game, files map[string][]byte) error {
 	project, err := loadImageProject(game)
 	if err != nil {
 		return err

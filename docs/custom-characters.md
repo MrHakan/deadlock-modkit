@@ -25,6 +25,20 @@ flowchart LR
 
 Each kind of piece goes into one mod, which dlmod rebuilds after every change, so switching a piece off or back on is one line in `dlmod list`. `dlmod select haze restore` and `dlmod effects haze restore` undo theirs.
 
+## The character creator
+
+The studio's **Create** tab (`dlmod studio`) does the whole thing from one page, with [Meshy](https://www.meshy.ai) doing the drawing and modelling:
+
+1. **Meshy key.** Paste your API key from meshy.ai → Settings → API once. It stays in `game/dlmod/meshy/key` and is sent only to Meshy (or set `MESHY_API_KEY`).
+2. **Describe your character.** Answer a few questions: its name, what it is (human, creature, robot, alien…), its body (arms and legs, round with no legs, four legs), its style, three colours, what it holds, anything else, and its three tags. dlmod writes the prompts for the picked hero from your answers and the hero's role, weapon and abilities; the description they use can be edited freely.
+3. **Make it, step by step.** Each step shows its price and asks before spending credits: the design sheet, then views from the front, side and back, then the 3D model (several views with `meshy-7.1`, or the front view with smart topology), then an optional Meshy rig for characters with arms and legs. While Meshy works, each result shows its place in Meshy's queue and a progress bar; finished pictures appear on the page. The first result of a step is kept; click another to keep that one instead, or make another.
+4. **Rig it on the hero.** *Open the model on the Model tab* loads the kept model, fits it to the hero and rigs it on the hero's bones right away, then plays the walk so you can check it. *Install on hero* puts it in the game.
+5. **Pictures.** The hero select art, the cards and portraits and one icon per ability are made from the design sheet the same way. *Install pictures* installs the kept ones with your name, tags and colours: the hero select screen (with the 3D scene hidden), the cards (green keyed out) and the icons (as white glyphs).
+
+Everything is saved in `game/dlmod/characters/<hero>`: the answers, every result, and the hero's workspace files, so closing dlmod loses nothing and `dlmod apply` can install the same folder.
+
+dlmod built with `go build -tags nomeshy` leaves the creator out; the Create tab then does not appear. The creator is meant to become a separate download later.
+
 ## The Meshy workspace
 
 [`meshy/`](../meshy/) has a folder for every hero (44 for build 6864) with everything needed to make a replacement with [Meshy](https://www.meshy.ai):

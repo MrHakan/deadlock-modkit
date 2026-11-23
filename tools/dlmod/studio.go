@@ -16,6 +16,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -54,6 +55,10 @@ type studio struct {
 	allSounds []string
 	images    *source2.VPKIndex // the game's interface images, read on the Images tab's first use
 	particles *source2.VPKIndex // the game's particle systems, read on the Effects tab's first use
+
+	// The Create tab: the files dlmod meshy reads, and each hero's creation.
+	workIndex *source2.VPKIndex
+	sessions  map[string]*creatorSession
 }
 
 // studioOptions are the page's settings, as ImportOptions takes them.
@@ -92,6 +97,9 @@ func runStudio(ui *UI, game Game, preload ...string) error {
 	}
 	ui.say("The model studio is at %s", url)
 	ui.say("It opens in your browser; leave this window open while you use it, and press Ctrl+C to stop.")
+	if os.Getenv("DLMOD_NO_BROWSER") != "" { // headless use and tests
+		return serve()
+	}
 	if err := openInPlayer(url); err != nil {
 		ui.say("Open the address above in your browser.")
 	}
@@ -187,6 +195,7 @@ func (s *studio) routes() http.Handler {
 	api("effects", s.effectList)
 	api("effects/apply", s.effectApply)
 	api("effects/restore", s.effectRestore)
+	s.creatorRoutes(api) // the Create tab, when dlmod is built with Meshy (creator.go)
 	return mux
 }
 

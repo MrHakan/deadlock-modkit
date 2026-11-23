@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"path"
@@ -122,6 +123,9 @@ func iconFor(index *source2.VPKIndex, a *heroAssets, base string) string {
 // the lines with a _quip line beside them in the text's section for the hero.
 func heroText(game Game, index *source2.VPKIndex, hero string, a *heroAssets) error {
 	data, err := os.ReadFile(filepath.Join(game.Citadel(), filepath.FromSlash(localizationFile("citadel_heroes", "english"))))
+	if errors.Is(err, os.ErrNotExist) {
+		return nil // no hero text: the prompts go without the hero's role and abilities
+	}
 	if err != nil {
 		return err
 	}

@@ -25,48 +25,86 @@ func applyCommand(ui *UI, store *Store, game Game, args []string, opts options) 
 		return errRunning
 	}
 	dir := args[0]
-	data, err := os.ReadFile(filepath.Join(dir, "workspace.json"))
+	w, err := readWorkspace(dir)
 	if err != nil {
-		return fmt.Errorf("%s has no workspace.json (make one with dlmod meshy <hero> <folder>): %v", dir, err)
-	}
-	var w workspace
-	if err := json.Unmarshal(data, &w); err != nil {
-		return fmt.Errorf("workspace.json: %v", err)
+		return err
 	}
 	hero, err := findHero(w.Hero)
 	if err != nil {
 		return err
 	}
-	have := func(s workspaceStep) (string, bool) {
-		file := filepath.Join(dir, filepath.FromSlash(s.Output))
-		_, err := os.Stat(file)
-		return file, err == nil
-	}
 	done, missing := 0, []string{}
-	var images, icons []string
-	selectArgs := []string{hero}
 	for _, s := range w.Steps {
-		file, ok := have(s)
-		if s.Kind == "" {
-			continue
-		}
-		if !ok {
+		file := filepath.Join(dir, filepath.FromSlash(s.Output))
+		if s.Kind != "" && !fileExists(file) {
 			missing = append(missing, s.Output)
 			continue
 		}
-		switch s.Kind {
-		case "model":
+		if s.Kind == "model" {
 			ui.say("Model: %s", s.Output)
 			if err := modelCommand(ui, store, game, []string{hero, file}, opts); err != nil {
 				return err
 			}
 			done++
+		}
+	}
+	pictures, err := installPictures(ui, store, game, w, dir)
+	if err != nil {
+		return err
+	}
+	done += pictures
+	for _, s := range w.Steps {
+		file := filepath.Join(dir, filepath.FromSlash(s.Output))
+		if s.Kind != "prop" || !fileExists(file) {
+			continue
+		}
+		if err := propCommand(ui, store, game, []string{s.Target, file}, opts); err != nil {
+			return err
+		}
+		done++
+	}
+	ui.say("%s: %d pieces installed.", w.Name, done)
+	if len(missing) > 0 {
+		ui.say("Not generated yet: %s", strings.Join(missing, ", "))
+	}
+	return nil
+}
+
+func readWorkspace(dir string) (*workspace, error) {
+	data, err := os.ReadFile(filepath.Join(dir, "workspace.json"))
+	if err != nil {
+		return nil, fmt.Errorf("%s has no workspace.json (make one with dlmod meshy <hero> <folder>): %v", dir, err)
+	}
+	var w workspace
+	if err := json.Unmarshal(data, &w); err != nil {
+		return nil, fmt.Errorf("workspace.json: %v", err)
+	}
+	return &w, nil
+}
+
+// installPictures installs the hero select screen, the cards and portraits and the ability icons
+// a workspace folder holds, and returns how many pieces went in. dlmod apply and the studio's
+// character creator both use it.
+func installPictures(ui prompter, store *Store, game Game, w *workspace, dir string) (int, error) {
+	hero, err := findHero(w.Hero)
+	if err != nil {
+		return 0, err
+	}
+	done := 0
+	var images, icons []string
+	selectArgs := []string{hero}
+	for _, s := range w.Steps {
+		file := filepath.Join(dir, filepath.FromSlash(s.Output))
+		if s.Kind == "" || !fileExists(file) {
+			continue
+		}
+		switch s.Kind {
 		case "select":
 			selectArgs = append(selectArgs, "bg="+file)
 		case "image":
 			keyed, err := keyedCopy(file)
 			if err != nil {
-				return err
+				return done, err
 			}
 			images = append(images, s.Target, keyed)
 		case "icon":
@@ -80,7 +118,7 @@ func applyCommand(ui *UI, store *Store, game Game, args []string, opts options) 
 	if sel.Name != "" {
 		selectArgs = append(selectArgs, "name="+sel.Name)
 	}
-	if len(sel.Tags) > 0 && !sameStrings(sel.Tags, w.Game.Tags) {
+	if w.Game != nil && len(sel.Tags) > 0 && !sameStrings(sel.Tags, w.Game.Tags) {
 		selectArgs = append(selectArgs, "tags="+strings.Join(sel.Tags, ","))
 	}
 	if len(sel.Colors) > 0 {
@@ -92,38 +130,23 @@ func applyCommand(ui *UI, store *Store, game Game, args []string, opts options) 
 		}
 		ui.say("Hero select screen: %s", strings.Join(selectArgs[1:], " "))
 		if err := selectCommand(ui, game, selectArgs); err != nil {
-			return err
+			return done, err
 		}
 		done++
 	}
 	if len(images) > 0 {
 		if err := imageCommand(ui, store, game, images); err != nil {
-			return err
+			return done, err
 		}
 		done += len(images) / 2
 	}
 	if len(icons) > 0 {
 		if err := iconsCommand(ui, store, game, append([]string{hero}, icons...)); err != nil {
-			return err
+			return done, err
 		}
 		done += len(icons)
 	}
-	for _, s := range w.Steps {
-		if s.Kind != "prop" {
-			continue
-		}
-		if file, ok := have(s); ok {
-			if err := propCommand(ui, store, game, []string{s.Target, file}, opts); err != nil {
-				return err
-			}
-			done++
-		}
-	}
-	ui.say("%s: %d pieces installed.", w.Name, done)
-	if len(missing) > 0 {
-		ui.say("Not generated yet: %s", strings.Join(missing, ", "))
-	}
-	return nil
+	return done, nil
 }
 
 // keyedCopy returns a picture drawn on green as a copy with the green keyed out (next to it,

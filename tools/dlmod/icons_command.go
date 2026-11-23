@@ -16,7 +16,7 @@ import (
 // list or part of its file name (stone_form). Pictures become white glyphs on transparency, as
 // the game's icons are (glyphImage): draw them white on black, or on transparency. They go into
 // the "Custom images" mod with the hero's other pictures.
-func iconsCommand(ui *UI, store *Store, game Game, args []string) error {
+func iconsCommand(ui prompter, store *Store, game Game, args []string) error {
 	if len(args) == 0 {
 		return errors.New("name a hero, for example: dlmod icons ivy or dlmod icons ivy stone_form=stone.png")
 	}

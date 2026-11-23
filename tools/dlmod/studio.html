@@ -102,8 +102,54 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 .swatch { border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
 .swatch .halves { display: grid; grid-template-columns: 1fr 1fr; height: 46px; }
 .swatch small { display: block; font-size: 10px; color: var(--dim); padding: 2px 6px; background: var(--panel); font-variant-numeric: tabular-nums; }
+/* Create tab: the character creator */
+.qs label.q { display: block; font-size: 12px; color: var(--dim); margin: 10px 0 4px; }
+.qs textarea, .gen textarea { width: 100%; font: inherit; font-size: 12px; color: var(--text); background: #1b1d23; border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 8px; resize: vertical; }
+.qs textarea:focus, .gen textarea:focus, .qs input:focus { outline: none; border-color: var(--accent-dim); }
+.colors { display: flex; gap: 6px; align-items: center; }
+.colors input[type=color] { width: 44px; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: #23262e; cursor: pointer; }
+.tagins { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.credits { color: var(--accent); font-variant-numeric: tabular-nums; }
+.steps { display: flex; flex-direction: column; gap: 20px; max-width: 1180px; margin: 0 auto; }
+.stepper { display: flex; gap: 6px; flex-wrap: wrap; position: sticky; top: -14px; background: var(--bg); padding: 8px 0 10px; z-index: 2; }
+.stepper span { font-size: 12px; padding: 4px 11px; border-radius: 99px; border: 1px solid var(--line); color: var(--dim); }
+.stepper span.done { border-color: #3d5a43; color: var(--ok); }
+.stepper span.now { border-color: var(--accent); color: var(--text); }
+.gen-group > h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 0 0 8px; font-weight: 600; }
+.gen-stack { display: flex; flex-direction: column; gap: 12px; }
+.pictures-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.gen { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.gen.locked { opacity: .6; }
+.gen header { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.gen header h3 { margin: 0; font-size: 14px; }
+.gen header small { color: var(--dim); font-size: 11px; }
+.gen .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.gen .controls select { width: auto; flex: 1 1 170px; font-size: 12px; }
+.gen .controls button.go { background: var(--accent); color: #1a1407; border-color: var(--accent); font-weight: 600; flex: 0 0 auto; }
+.gen details summary { font-size: 12px; color: var(--dim); cursor: pointer; }
+.gen details textarea { margin-top: 6px; min-height: 90px; }
+.gen .lock, .gen .note2 { font-size: 12px; color: var(--dim); }
+.results { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.result { position: relative; border: 2px solid transparent; border-radius: 9px; background: #16181d; overflow: hidden; display: flex; flex-direction: column; }
+.result.done { cursor: pointer; }
+.result.done:hover { border-color: var(--accent-dim); }
+.result.kept, .result.kept:hover { border-color: var(--accent); }
+.result .imgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 2px; }
+.result img { width: 100%; display: block; background: repeating-conic-gradient(#25272e 0% 25%, #1c1e24 0% 50%) 50% / 16px 16px; }
+.result .badge { position: absolute; top: 6px; left: 6px; font-size: 11px; background: var(--accent); color: #1a1407; padding: 1px 8px;
+  border-radius: 99px; font-weight: 600; }
+.result .meta { font-size: 11px; color: var(--dim); padding: 5px 7px; }
+.result.failed .meta { color: var(--bad); }
+.result .wait { min-height: 110px; display: grid; place-items: center; color: var(--dim); font-size: 12px; text-align: center; padding: 8px; }
+.bar { height: 6px; background: #262931; border-radius: 99px; overflow: hidden; margin: 0 7px 6px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .8s ease; }
+.bar.queue i { width: 30%; background: var(--accent-dim); animation: queue 1.5s ease-in-out infinite; }
+@keyframes queue { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+@media (max-width: 760px) { .pictures-grid { grid-template-columns: 1fr; } .tagins { grid-template-columns: 1fr; } }
 [hidden] { display: none !important; }
-@media (max-width: 760px) { .app { grid-template-columns: 1fr; grid-template-rows: auto 60vh; } aside { border-right: 0; } }
+@media (max-width: 760px) { html, body { height: auto; } .app { height: auto; grid-template-columns: 1fr; grid-template-rows: auto 80vh; }
+  aside { border-right: 0; overflow: visible; } }
 </style>
 </head>
 <body>
@@ -117,10 +163,55 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <select id="hero"><option value="">Pick a hero…</option></select>
     <div class="info" id="heroInfo"></div>
     <nav class="tabs" id="tabs">
-      <button data-tab="model" class="on">Model</button><button data-tab="sounds">Sounds</button>
+      <button data-tab="create" id="createTabButton">Create</button><button data-tab="model" class="on">Model</button><button data-tab="sounds">Sounds</button>
       <button data-tab="images">Images</button><button data-tab="text">Text</button><button data-tab="effects">Effects</button>
     </nav>
   </section>
+
+  <div id="tab-create" hidden>
+  <section>
+    <h2>Meshy</h2>
+    <div id="meshyKeyBox" hidden>
+      <div class="info">The creator makes your character with <b>Meshy</b>. Paste your API key from meshy.ai → Settings → API.
+        It stays on this computer and is only sent to Meshy. Every step shows its price and asks before spending credits.</div>
+      <input type="password" id="meshyKey" placeholder="msy_…" autocomplete="off" style="margin-top:8px">
+      <div class="buttons"><button id="meshyKeySave">Save key</button></div>
+    </div>
+    <div class="info" id="meshyBalance"></div>
+  </section>
+  <section class="qs">
+    <h2>1 · Your character</h2>
+    <label class="q" for="qName">Name</label>
+    <input type="text" id="qName" placeholder="Rook" maxlength="40">
+    <label class="q">What is it?</label>
+    <div class="chips" data-q="what"><button>Human</button><button>Creature</button><button>Robot</button><button>Animal</button><button>Alien</button><button>Monster</button><button>Spirit</button></div>
+    <label class="q">Body</label>
+    <div class="chips" data-q="body"><button data-v="humanoid">Arms and legs</button><button data-v="round">Round, no legs</button><button data-v="quadruped">Four legs</button></div>
+    <label class="q">Style</label>
+    <div class="chips" data-q="style"><button>Stylized cartoon</button><button>Painterly</button><button>Realistic</button><button>Toy</button><button>Anime</button><button>Claymation</button></div>
+    <label class="q">Main colours</label>
+    <div class="colors"><input type="color" id="qC1" value="#2a6fdb"><input type="color" id="qC2" value="#e8b04b"><input type="color" id="qC3" value="#f2efe8">
+      <label class="info" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="qColors" checked> use them</label></div>
+    <label class="q" for="qItem">It holds</label>
+    <input type="text" id="qItem" placeholder="a weapon or prop">
+    <label class="q" for="qDetails">Anything else</label>
+    <textarea id="qDetails" rows="3" placeholder="clothes, materials, face, personality…"></textarea>
+    <label class="q">Tags on the hero select screen</label>
+    <div class="tagins"><input type="text" id="qT1" maxlength="16"><input type="text" id="qT2" maxlength="16"><input type="text" id="qT3" maxlength="16"></div>
+    <div class="buttons" style="margin-top:10px"><button class="primary" id="qSave">Write the prompts</button></div>
+    <label class="q" for="qConcept">Description the prompts use (edit it freely)</label>
+    <textarea id="qConcept" rows="4"></textarea>
+    <div class="buttons"><button id="qConceptSave">Use this description</button></div>
+    <div class="info" id="qInfo"></div>
+  </section>
+  <section>
+    <h2>Install</h2>
+    <div class="info">The 3D model goes to the Model tab to be rigged and installed. The hero select art, cards and icons you keep install here, with the name, tags and colours above.</div>
+    <div class="buttons"><button class="primary" id="crInstall" disabled>Install pictures</button></div>
+    <div class="info" id="crFolder" style="margin-top:6px;word-break:break-all"></div>
+    <div class="log" id="crLog"></div>
+  </section>
+  </div>
 
   <div id="tab-effects" hidden>
   <section>
@@ -285,6 +376,16 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
   <div class="panel" id="textPanel" hidden>
     <div class="empty-panel" id="textEmpty">Pick a hero to see their text.</div>
     <div id="textList"></div>
+  </div>
+  <div class="panel" id="createPanel" hidden>
+    <div class="empty-panel" id="createEmpty">Pick a hero, then describe your character on the left.</div>
+    <div class="steps" id="createSteps" hidden>
+      <div class="stepper" id="stepper"></div>
+      <div class="gen-group"><h2>Character</h2><div class="gen-stack" id="stepsCharacter"></div></div>
+      <div class="gen-group"><h2>3D model</h2><div class="gen-stack" id="stepsModel"></div>
+        <div class="buttons" style="margin-top:10px"><button class="primary" id="crImport" disabled>Open the model on the Model tab and rig it on the hero</button></div></div>
+      <div class="gen-group"><h2>Pictures for the game</h2><div class="pictures-grid" id="stepsPictures"></div></div>
+    </div>
   </div>
   <div class="toggles">
     <label><input type="checkbox" id="showHero" checked> hero</label>
@@ -505,7 +606,7 @@ $("hero").onchange = async () => {
 const heroHooks = []; // tabs that show something of the hero reload when it changes
 
 // --- tabs: the model tab shows the 3D view, the others their own panel over it ---
-const panels = { sounds: "soundsPanel", images: "imagesPanel", text: "textPanel", effects: "effectsPanel" };
+const panels = { create: "createPanel", sounds: "soundsPanel", images: "imagesPanel", text: "textPanel", effects: "effectsPanel" };
 let tab = "model";
 function showTab(name) {
   tab = name;
@@ -1162,6 +1263,220 @@ $("fxRestore").onclick = async () => {
 };
 tabHooks.effects = [() => loadFx()];
 heroHooks.push(() => { if (tab === "effects") loadFx(true); });
+
+// --- create: describe a character, make it with Meshy step by step, put it on the hero ---
+const cr = { hero: null, view: null, timer: null, edits: {} };
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+const crFile = name => `/api/creator/file?t=${TOKEN}&hero=${encodeURIComponent(cr.hero)}&name=${encodeURIComponent(name)}`;
+const crRunning = g => !["SUCCEEDED", "FAILED", "CANCELED"].includes(g.status);
+function crLog(text, kind) { const line = el("div", kind, text); $("crLog").append(line); $("crLog").scrollTop = 1e9; }
+
+// questions
+document.querySelectorAll(".qs .chips").forEach(group => group.querySelectorAll("button").forEach(b => b.onclick = () => {
+  const on = b.classList.contains("on");
+  group.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+  if (!on) b.classList.add("on");
+}));
+const chipValue = q => { const b = document.querySelector(`.qs .chips[data-q="${q}"] button.on`); return b ? (b.dataset.v || b.textContent) : ""; };
+function answers() {
+  return {
+    name: $("qName").value.trim(), what: chipValue("what"), body: chipValue("body"), style: chipValue("style"),
+    colors: $("qColors").checked ? [$("qC1").value, $("qC2").value, $("qC3").value] : [],
+    item: $("qItem").value.trim(), details: $("qDetails").value.trim(),
+    tags: [$("qT1").value, $("qT2").value, $("qT3").value].map(t => t.trim()).filter(Boolean),
+  };
+}
+function fillAnswers(a, concept) {
+  $("qName").value = a.name || ""; $("qItem").value = a.item || ""; $("qDetails").value = a.details || "";
+  for (const q of ["what", "body", "style"]) document.querySelectorAll(`.qs .chips[data-q="${q}"] button`)
+    .forEach(b => b.classList.toggle("on", (b.dataset.v || b.textContent) === a[q]));
+  const colors = a.colors || [];
+  if (colors.length) { $("qC1").value = colors[0]; $("qC2").value = colors[1] || colors[0]; $("qC3").value = colors[2] || colors[0]; }
+  $("qColors").checked = !a.name || colors.length > 0;
+  const tags = a.tags || []; $("qT1").value = tags[0] || ""; $("qT2").value = tags[1] || ""; $("qT3").value = tags[2] || "";
+  $("qConcept").value = concept || "";
+}
+async function saveAnswers(concept) {
+  if (!cr.hero) return;
+  busy("Writing the prompts for " + cr.view.name + "…");
+  try {
+    cr.view = await api("creator/answers", { hero: cr.hero, answers: answers(), concept });
+    $("qConcept").value = cr.view.concept;
+    $("qInfo").textContent = "The prompts below now describe your character.";
+    renderCreator();
+  } catch (e) { $("qInfo").textContent = e.message; }
+  busy();
+}
+$("qSave").onclick = () => saveAnswers("");
+$("qConceptSave").onclick = () => saveAnswers($("qConcept").value.trim());
+
+// Meshy key and credits
+async function showBalance() {
+  try { const r = await api("creator/balance"); $("meshyBalance").innerHTML = `Credits left: <span class="credits">${r.balance}</span>`; }
+  catch (e) { $("meshyBalance").textContent = e.message; }
+}
+function keyBox(hasKey) { $("meshyKeyBox").hidden = hasKey; if (hasKey) showBalance(); else $("meshyBalance").textContent = ""; }
+$("meshyKeySave").onclick = async () => {
+  busy("Checking the key with Meshy…");
+  try {
+    const r = await api("creator/key", { key: $("meshyKey").value });
+    $("meshyKey").value = ""; cr.view && (cr.view.hasKey = true); keyBox(true);
+    $("meshyBalance").innerHTML = `Credits left: <span class="credits">${r.balance}</span>`; renderCreator();
+  } catch (e) { $("meshyBalance").textContent = e.message; }
+  busy();
+};
+
+// steps
+function stepTitle(id) { return { design_sheet: "design sheet", turnaround: "set of views", model: "3D model" }[id] || id; }
+function renderCreator() {
+  const v = cr.view;
+  $("createEmpty").hidden = !!v; $("createSteps").hidden = !v;
+  if (!v) return;
+  $("crFolder").textContent = "Saved in " + v.folder;
+  const groups = { character: $("stepsCharacter"), model: $("stepsModel"), pictures: $("stepsPictures") };
+  for (const g of Object.values(groups)) g.innerHTML = "";
+  for (const st of v.steps) groups[st.group].append(stepCard(st));
+  updateCreator();
+}
+function stepCard(st) {
+  const card = el("div", "gen"); card.dataset.step = st.id;
+  const head = el("header"); head.append(el("h3", "", st.title));
+  if (st.optional) head.append(el("small", "", "optional"));
+  if (st.size) head.append(el("small", "", st.size + (st.target ? " · " + st.target.split("/").pop() : "")));
+  card.append(head);
+  const edit = cr.edits[st.id] || (cr.edits[st.id] = {});
+  const controls = el("div", "controls");
+  const select = el("select");
+  for (const [m, price] of Object.entries(st.models)) select.add(new Option(`${m} · ${price} credits`, m));
+  select.value = edit.model || st.default;
+  select.onchange = () => { edit.model = select.value; updateCreator(); };
+  const go = el("button", "go");
+  go.onclick = () => runStep(st, select.value);
+  controls.append(select, go);
+  card.append(controls);
+  if (st.prompt) {
+    const details = el("details"); details.append(el("summary", "", "Prompt"));
+    const text = el("textarea"); text.value = edit.prompt !== undefined ? edit.prompt : st.filled;
+    text.oninput = () => edit.prompt = text.value;
+    details.append(text); card.append(details);
+  }
+  if (st.note) card.append(el("div", "note2", st.note));
+  card.append(el("div", "lock"));
+  card.append(el("div", "results"));
+  return card;
+}
+function genTile(g, kept) {
+  const tile = el("div", "result" + (g.status === "SUCCEEDED" ? " done" : "") + (kept ? " kept" : "") + (["FAILED", "CANCELED"].includes(g.status) ? " failed" : ""));
+  if (kept) tile.append(el("span", "badge", "Kept"));
+  if (g.status === "SUCCEEDED") {
+    const imgs = el("div", "imgs");
+    const pics = g.thumb ? [g.thumb] : g.files.filter(f => f.endsWith(".png"));
+    for (const f of pics) { const img = el("img"); img.src = crFile(f); img.loading = "lazy"; imgs.append(img); }
+    if (!pics.length) imgs.append(el("div", "wait", "3D model ready"));
+    tile.append(imgs);
+    tile.append(el("div", "meta", `${g.model} · ${g.credits} credits` + (kept ? "" : " · click to keep")));
+    if (!kept) tile.onclick = () => chooseGen(g);
+  } else if (crRunning(g)) {
+    const queued = g.status === "PENDING" || g.progress === 0;
+    tile.append(el("div", "wait", queued ? (g.queue ? `In Meshy's queue · ${g.queue} ahead` : "Starting…") : `Making it… ${g.progress}%`));
+    const bar = el("div", "bar" + (queued ? " queue" : "")); const fill = el("i"); if (!queued) fill.style.width = g.progress + "%";
+    bar.append(fill); tile.append(bar);
+  } else tile.append(el("div", "meta", g.error || g.status));
+  return tile;
+}
+// updateCreator refreshes what changes while generations run, keeping the prompts being edited.
+function updateCreator() {
+  const v = cr.view; if (!v) return;
+  const ready = v.ready || {};
+  for (const st of v.steps) {
+    const card = document.querySelector(`.gen[data-step="${st.id}"]`); if (!card) continue;
+    const isReady = ready[st.id] !== undefined ? ready[st.id] : st.ready;
+    const gens = (v.generations || []).filter(g => g.step === st.id).reverse();
+    const busyNow = gens.some(crRunning);
+    const model = (cr.edits[st.id] || {}).model || st.default;
+    const go = card.querySelector("button.go");
+    go.textContent = (gens.length ? "Make another" : "Generate") + ` · ${st.models[model]} credits`;
+    go.disabled = !isReady || !v.hasKey || !v.concept || busyNow;
+    card.classList.toggle("locked", !isReady);
+    card.querySelector(".lock").textContent = !v.concept ? "Describe your character first." : !isReady ? `Keep a ${stepTitle(st.needs)} first.` :
+      !v.hasKey ? "Add your Meshy key on the left." : "";
+    const results = card.querySelector(".results"); results.innerHTML = "";
+    for (const g of gens) results.append(genTile(g, v.chosen[st.id] === g.id));
+  }
+  const kept = id => { const g = v.generations.find(x => x.id === v.chosen[id]); return g && g.status === "SUCCEEDED"; };
+  const pictures = v.steps.filter(s => s.group === "pictures");
+  const keptPictures = pictures.filter(s => kept(s.id)).length;
+  const marks = [["Describe", !!v.concept], ["Design sheet", kept("design_sheet")], ["Views", kept("turnaround")],
+    ["3D model", kept("model")], ["Rig", kept("rig")], [`Pictures ${keptPictures}/${pictures.length}`, keptPictures === pictures.length]];
+  $("stepper").innerHTML = "";
+  let current = false;
+  for (const [label, done] of marks) {
+    const chip = el("span", done ? "done" : !current ? "now" : "", (done ? "✓ " : "") + label);
+    if (!done) current = true;
+    $("stepper").append(chip);
+  }
+  $("crImport").disabled = !(kept("model") || kept("rig"));
+  $("crInstall").disabled = keptPictures === 0;
+}
+async function runStep(st, model) {
+  const price = st.models[model];
+  if (!confirm(`${st.title} with ${model} costs ${price} Meshy credits. Generate it?`)) return;
+  const edit = cr.edits[st.id] || {};
+  try {
+    cr.view = { ...cr.view, ...(await api("creator/run", { hero: cr.hero, step: st.id, model, prompt: st.prompt ? (edit.prompt ?? st.filled) : "", confirm: true })) };
+    updateCreator(); pollCreator();
+    setTimeout(showBalance, 4000);
+  } catch (e) { const card = document.querySelector(`.gen[data-step="${st.id}"]`); if (card) card.querySelector(".lock").textContent = e.message; }
+}
+async function chooseGen(g) {
+  try { cr.view = { ...cr.view, ...(await api("creator/choose", { hero: cr.hero, gen: g.id })) }; updateCreator(); }
+  catch (e) { crLog(e.message, "bad"); }
+}
+async function pollCreator() {
+  clearTimeout(cr.timer);
+  if (!cr.view || !(cr.view.generations || []).some(crRunning)) return;
+  try {
+    const r = await api("creator/poll", { hero: cr.hero });
+    const finished = cr.view.generations.filter(crRunning).length > r.generations.filter(crRunning).length;
+    Object.assign(cr.view, { generations: r.generations, chosen: r.chosen, ready: r.ready });
+    updateCreator();
+    if (finished) showBalance();
+  } catch (e) { /* try again */ }
+  cr.timer = setTimeout(pollCreator, 1500);
+}
+async function loadCreator() {
+  const hero = $("hero").value;
+  if (!hero) { cr.view = null; renderCreator(); return; }
+  if (cr.hero === hero && cr.view) return;
+  $("createEmpty").textContent = "Reading " + $("hero").selectedOptions[0].text + " from the game…"; $("createEmpty").hidden = false;
+  try {
+    cr.view = await api("creator/state", { hero }); cr.hero = hero; cr.edits = {};
+    fillAnswers(cr.view.answers, cr.view.concept); keyBox(cr.view.hasKey); renderCreator(); pollCreator();
+  } catch (e) { $("createEmpty").textContent = e.message; }
+}
+$("crImport").onclick = async () => {
+  busy("Loading your 3D model…");
+  try {
+    const model = await api("creator/import", { hero: cr.hero });
+    showModel(model); showTab("model"); $("empty").hidden = true;
+    busy(); await doRig("Rigging " + (cr.view.answers.name || "your character") + " on " + cr.view.name + "…");
+    const walk = document.querySelector('[data-anim="walk"]'); if (!$("advanced").hidden && walk) walk.click();
+    log("Your character is rigged on " + cr.view.name + ". Check the poses, then install it.", "ok");
+  } catch (e) { crLog(e.message, "bad"); }
+  busy();
+};
+$("crInstall").onclick = async () => {
+  busy("Installing the hero select screen, cards and icons…");
+  try { const r = await api("creator/install", { hero: cr.hero }); for (const m of r.messages) crLog(m, "ok"); }
+  catch (e) { crLog(e.message, "bad"); }
+  busy();
+};
+tabHooks.create = [() => loadCreator()];
+heroHooks.push(() => { cr.view = null; cr.hero = null; if (tab === "create") loadCreator(); });
+// dlmod built without Meshy has no creator: hide the tab. Otherwise open on it unless a model
+// was dropped on dlmod.
+api("creator/list").then(r => { keyBox(r.hasKey); return api("current"); }).then(m => { if (!m.name) showTab("create"); })
+  .catch(() => { $("createTabButton").hidden = true; });
 </script>
 </body>
 </html>
