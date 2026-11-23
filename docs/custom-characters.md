@@ -55,7 +55,7 @@ dlmod apply meshy/haze
 
 The first line fills the description into the prompts. After generating, the second installs every file that is in `assets/`: the model, the hero select screen, the cards (a flat green background is keyed out), the icons (turned into white glyphs) and the ability models. `dlmod meshy all meshy` writes every hero's folder again from the installed game, after a game update for example.
 
-The abilities' slots and icons come from [`tools/dlmod/hero_abilities.go`](../tools/dlmod/hero_abilities.go), generated with `go run ./internal/genabilities <build>` from deadlock-api's copy of the game data, because the game keeps them in a compressed file dlmod does not read.
+The abilities' slots, icons and models come from the game's own `scripts/heroes.vdata` and `scripts/abilities.vdata`, which dlmod decodes (they are KeyValues3 compressed with Zstandard). If those cannot be read, for example after the game changes their layout, [`tools/dlmod/hero_abilities.go`](../tools/dlmod/hero_abilities.go) still has them for build 6864, generated with `go run ./internal/genabilities <build>` from deadlock-api's copy of the game data.
 
 ## The model studio
 
@@ -111,5 +111,5 @@ Making a character that is nothing like the hero it replaces taught us how the g
 **Pictures and props**
 
 - Ability icons are white glyphs on transparency (137x137) that the HUD tints. Cards are 280x380, the tall portrait 120x200, the minimap icon 50x50.
-- Which icon belongs to which ability is not in the icon's name (Ivy's *Air Drop* is `tengu_lightning_crash`); it is in `scripts/abilities.vdata`, which is zstd-compressed.
+- Which icon belongs to which ability is not in the icon's name (Ivy's *Air Drop* is `tengu_lightning_crash`); it is in `scripts/abilities.vdata` (`m_strAbilityImage`), with the particles, models, sounds and values of each ability; the hero's four slots are in `scripts/heroes.vdata` (`m_mapBoundAbilities`). Both are KeyValues3 compressed with Zstandard, which dlmod decodes itself.
 - Older ability models (thrown bombs) use the older model layout with an `MBUF` block; dlmod reads and rewrites both layouts.

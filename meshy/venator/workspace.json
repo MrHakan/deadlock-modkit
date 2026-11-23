@@ -441,6 +441,6 @@
       "Citadel_Priest_HeroTag_2",
       "Citadel_Priest_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

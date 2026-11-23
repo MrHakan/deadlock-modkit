@@ -505,7 +505,8 @@ func (r *reader) read(t, flag byte, lane *lanes) (*Value, error) {
 	return v, nil
 }
 
-// ReadKV3 decodes binary KV3 version 4 or 5, uncompressed or LZ4-compressed, with binary blobs.
+// ReadKV3 decodes binary KV3 version 4 or 5, uncompressed, LZ4- or zstd-compressed, with binary
+// blobs (not yet with zstd).
 // Version 5 is what current compilers write for models, materials and textures: it splits the
 // data into two buffers, the strings with an auxiliary lane for packed arrays, and the rest.
 func ReadKV3(data []byte) (*Value, [16]byte, error) {
@@ -527,7 +528,7 @@ func ReadKV3(data []byte) (*Value, [16]byte, error) {
 	}
 	copy(format[:], data[4:20])
 	method := binary.LittleEndian.Uint32(data[20:])
-	if method > 1 {
+	if method > 2 {
 		return nil, format, fmt.Errorf("kv3: compression method %d is not supported", method)
 	}
 	field := func(offset int) int { return int(binary.LittleEndian.Uint32(data[offset:])) }
@@ -536,7 +537,7 @@ func ReadKV3(data []byte) (*Value, [16]byte, error) {
 	body := data[headerSize:]
 	unpack := func(compressed, size int) ([]byte, error) {
 		stored := size
-		if method == 1 {
+		if method != 0 {
 			stored = compressed
 		}
 		if stored < 0 || len(body) < stored {
@@ -544,8 +545,11 @@ func ReadKV3(data []byte) (*Value, [16]byte, error) {
 		}
 		raw := body[:stored]
 		body = body[stored:]
-		if method == 0 {
+		switch method {
+		case 0:
 			return raw, nil
+		case 2:
+			return DecodeZstd(raw, size)
 		}
 		return decodeLZ4Block(raw, size)
 	}
@@ -633,6 +637,9 @@ func ReadKV3(data []byte) (*Value, [16]byte, error) {
 		}
 		if _, err := take(&rest, 4); err != nil {
 			return nil, format, err
+		}
+		if method == 2 {
+			return nil, format, errors.New("kv3: zstd-compressed binary blobs are not supported")
 		}
 		var raw []byte
 		if method == 0 {

@@ -454,6 +454,6 @@
       "Citadel_Shiv_HeroTag_2",
       "Citadel_Shiv_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

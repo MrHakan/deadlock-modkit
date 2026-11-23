@@ -445,6 +445,6 @@
       "Citadel_Necro_HeroTag_2",
       "Citadel_Necro_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

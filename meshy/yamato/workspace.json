@@ -462,6 +462,6 @@
       "Citadel_Yamato_HeroTag_2",
       "Citadel_Yamato_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

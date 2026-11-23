@@ -70,6 +70,8 @@ func openWorkspaceIndex(game Game) (*source2.VPKIndex, error) {
 		switch {
 		case strings.HasPrefix(n, "models/"):
 			return strings.HasSuffix(n, ".vmdl_c") || strings.HasSuffix(n, ".vnmskel_c") || strings.HasSuffix(n, ".vnmclip_c")
+		case n == heroesVdata || n == abilitiesVdata:
+			return true
 		case strings.HasPrefix(n, "particles/"):
 			return strings.HasSuffix(n, ".vpcf_c")
 		case strings.HasPrefix(n, "panorama/images/"):
@@ -97,14 +99,24 @@ func words(s string) []string {
 
 // iconFor finds an ability icon by its base name: among the hero's icons, or anywhere under the
 // ability icons (some heroes keep theirs in a folder of another name), and adds it to the list.
-func iconFor(index *source2.VPKIndex, a *heroAssets, base string) string {
+func iconFor(index *source2.VPKIndex, a *heroAssets, icon string) string {
+	if icon == "" {
+		return ""
+	}
+	// icon is the compiled file (from the game's data) or the base of its name (from the table).
+	match := func(name string) bool {
+		if strings.Contains(icon, "/") {
+			return name == icon
+		}
+		return strings.HasPrefix(name, "panorama/images/hud/abilities/") && path.Base(name) == icon+"_psd.vtex_c"
+	}
 	for _, f := range a.Icons {
-		if path.Base(f.Path) == base+"_psd.vtex_c" {
+		if match(f.Path) {
 			return f.Path
 		}
 	}
 	for name := range index.Files {
-		if strings.HasPrefix(name, "panorama/images/hud/abilities/") && path.Base(name) == base+"_psd.vtex_c" {
+		if match(name) {
 			f := assetFile{Path: name, Label: "ability icon"}
 			if head, err := index.ReadHead(name, 16<<10); err == nil {
 				if info, _, err := source2.TextureHeader(head); err == nil {
@@ -119,8 +131,8 @@ func iconFor(index *source2.VPKIndex, a *heroAssets, base string) string {
 }
 
 // heroText reads a hero's abilities, role, playstyle, weapon and tags from the English hero text.
-// The abilities come from heroAbilities (slots and icons) when it knows the hero, else they are
-// the lines with a _quip line beside them in the text's section for the hero.
+// The abilities come from the game's data or heroAbilities (slots and icons) when they know the
+// hero, else they are the lines with a _quip line beside them in the text's section for the hero.
 func heroText(game Game, index *source2.VPKIndex, hero string, a *heroAssets) error {
 	data, err := os.ReadFile(filepath.Join(game.Citadel(), filepath.FromSlash(localizationFile("citadel_heroes", "english"))))
 	if errors.Is(err, os.ErrNotExist) {
@@ -164,20 +176,24 @@ func heroText(game Game, index *source2.VPKIndex, hero string, a *heroAssets) er
 		}
 		return slug
 	}
-	if table, ok := heroAbilities[hero]; ok {
-		// The ability table knows the slots and icons; the text adds what each ability does.
-		for _, row := range table {
-			key := strings.ToLower(row[0])
-			name := plainText(values[key])
+	if keys, icons, fallback, source := heroAbilityKeys(index, hero); source != "" {
+		// The game's data (or the table) knows the slots and icons; the text adds what each
+		// ability does.
+		for i, key := range keys {
+			lower := strings.ToLower(key)
+			name := plainText(values[lower])
 			if name == "" {
-				name = row[1]
+				name = fallback[i]
+			}
+			if name == "" {
+				name = key
 			}
 			a.Abilities = append(a.Abilities, abilityInfo{
-				Key: row[0], Name: name, Quip: plainText(values[key+"_quip"]), Desc: plainText(values[key+"_desc"]),
-				Slug: slugOf(row[0]), Icon: iconFor(index, a, row[2]),
+				Key: key, Name: name, Quip: plainText(values[lower+"_quip"]), Desc: plainText(values[lower+"_desc"]),
+				Slug: slugOf(key), Icon: iconFor(index, a, icons[i]),
 			})
 		}
-		a.TextSource = "hero_abilities.go"
+		a.TextSource = source
 	}
 	seen := map[string]bool{}
 	for _, t := range tokens {
@@ -344,13 +360,24 @@ func gatherHero(game Game, index *source2.VPKIndex, hero string) (*heroAssets, e
 	if err := heroText(game, index, hero, a); err != nil {
 		return nil, err
 	}
-	if _, ok := heroAbilities[hero]; !ok {
+	if a.TextSource != abilitiesFromGame && a.TextSource != abilitiesFromTable {
 		pairIcons(a.Abilities, a.Icons, hero)
+	}
+	var data *gameData
+	if a.TextSource == abilitiesFromGame {
+		data, _ = loadGameData(index)
 	}
 	for i := range a.Abilities {
 		var props []string
+		var named map[string]bool // the ability models the game's data names for this ability
+		if data != nil && data.abilities[a.Abilities[i].Key] != nil {
+			named = map[string]bool{}
+			for _, m := range data.abilities[a.Abilities[i].Key].Models {
+				named[m] = true
+			}
+		}
 		for _, p := range a.Props {
-			if propOfAbility(p, a.Abilities[i], hero) {
+			if named[p] || propOfAbility(p, a.Abilities[i], hero) {
 				props = append(props, p)
 			}
 		}

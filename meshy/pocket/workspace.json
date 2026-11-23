@@ -492,6 +492,6 @@
       "Citadel_Synth_HeroTag_2",
       "Citadel_Synth_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }
