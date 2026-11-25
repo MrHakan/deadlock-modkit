@@ -207,9 +207,17 @@ func (m *Model) bufferData(desc *Value, count, size int, vertex bool) ([]byte, e
 		return nil, errors.New("buffer points at a missing block")
 	}
 	raw := m.Resource.Blocks[block].Data
+	if boolOf(desc.Get("m_bCompressedZ3")) {
+		return nil, errors.New("buffer is compressed with Z3, which dlmod does not read")
+	}
+	if boolOf(desc.Get("m_bCompressedZSTD")) { // zstd first, then meshopt if that is set too
+		decoded, err := DecodeZstd(raw, 0)
+		if err != nil {
+			return nil, err
+		}
+		raw = decoded
+	}
 	switch {
-	case boolOf(desc.Get("m_bCompressedZSTD")) || boolOf(desc.Get("m_bCompressedZ3")):
-		return nil, errors.New("buffer is compressed with zstd, which dlmod does not read")
 	case !boolOf(desc.Get("m_bMeshoptCompressed")):
 		if len(raw) != count*size {
 			return nil, fmt.Errorf("buffer is %d bytes, expected %d", len(raw), count*size)

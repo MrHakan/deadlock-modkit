@@ -27,7 +27,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 | --- | --- | --- |
 | Model | `models/heroes_wip/ivy/ivy.vmdl` | 112 units tall |
 | Animation skeleton | `models/heroes_staging/tengu/tengu_v2/dmx/mesh/ivy.vnmskel` | |
-| Animation clips | `models/heroes_staging/tengu/tengu_v2/clips/` | 188 clips |
+| Animation clips | `models/heroes_staging/tengu/tengu_v2/clips/` | 160 clips |
 | Hero card (hero select, HUD) | `panorama/images/heroes/tengu_card_psd.vtex_c` | 280x380 |
 | Card at low health | `panorama/images/heroes/tengu_card_critical_psd.vtex_c` | 280x380 |
 | Card after a kill | `panorama/images/heroes/tengu_card_gloat_psd.vtex_c` | 280x380 |
@@ -51,7 +51,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 
 ## Animations
 
-The game plays Ivy's own 188 clips on whatever model is installed, so a replacement is rigged to Ivy's bones rather than given new animations. What the game does to those clips matters:
+The game plays Ivy's own 160 clips on whatever model is installed, so a replacement is rigged to Ivy's bones rather than given new animations. What the game does to those clips matters:
 
 - Clips worth checking a rig against: `weapon_idle`, `out_of_combat_idle`, `weapon_run_n`, `weapon_crouch_idle`, `melee_quick_1`, `melee_hit`, `reload_stand_idle`, `weapon_shoot`.
 - Melee, reloads and casts are laid over the movement through bone masks (`Throw_UpperBody`, `Cast_UpperBody`, `Reload_Crouch`, `Reload_Haspath`, `Reload_HasPathCrouch`, `Reload_Idle`, `Reload_InAir`, `Reload_Slide`, `melee_UpperBody`, `UpperBodyReplace_Asleep`, `UpperBodyReplace_GroundDash`, `UpperBodyReplace_InAir`, `UpperBodyReplace_Shopping`, `UpperBodyReplace_Slide`, `UpperBodyReplace_Turn`, `Parry_UpperBody`): only the upper body takes the clip, so a fit to the whole clip is wrong in game.

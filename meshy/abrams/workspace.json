@@ -310,6 +310,14 @@
     "modelFolder": "models/heroes_wip/abrams/",
     "height": 130.70151138305664,
     "skeleton": "models/heroes_wip/abrams/abrams.vnmskel",
+    "clipFolder": "models/heroes_wip/abrams/clips/",
+    "clips": 238,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",
@@ -434,6 +442,6 @@
       "Citadel_Abrams_HeroTag_2",
       "Citadel_Abrams_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

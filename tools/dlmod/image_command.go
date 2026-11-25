@@ -13,7 +13,7 @@ import (
 // imageCommand puts pictures over game images from the command line, as the studio's Images tab
 // does: dlmod image <game image> <picture> [<game image> <picture> ...]. A game image is named by
 // its path in the game (panorama/images/heroes/tengu_card_psd.vtex_c, with or without _c).
-func imageCommand(ui *UI, store *Store, game Game, args []string) error {
+func imageCommand(ui prompter, store *Store, game Game, args []string) error {
 	if len(args) == 0 || len(args)%2 != 0 {
 		return errors.New("name pairs of a game image and a picture, for example: dlmod image panorama/images/heroes/tengu_card_psd.vtex_c card.png")
 	}

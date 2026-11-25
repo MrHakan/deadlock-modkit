@@ -32,6 +32,7 @@ Usage:
   dlmod patch                  make the game load mods again after a game update
   dlmod unpatch                undo dlmod's gameinfo.gi change
   dlmod play                   patch if needed, then start Deadlock through Steam
+  dlmod play <hero>            the same, straight into the Hero Sandbox as that hero, to check a character
   dlmod update                 download the Counter Intelligence HUD for your game build (GitHub)
   dlmod search <words> [-hero H] [-category C]
                                search the online mod catalog (deadlockmods.app, from GameBanana)
@@ -41,18 +42,20 @@ Usage:
                                dlmod extract models/heroes_staging/haze
   dlmod studio                 open the model studio in your browser: drop a .glb, .gltf or .obj
                                on a hero, check the fit and the rig, install
-  dlmod model <hero> <file> [-keep gun] [-move gun=X,Y,Z] [-scale 1] [-yaw 0] [-zup]
+  dlmod model <hero> <file> [-keep gun] [-move gun=X,Y,Z] [-scale 1] [-yaw 0] [-zup] [-steady] [-no-arm-ik] [-usual-pose]
   dlmod image <game image> <picture> [...]  put pictures over game images (panorama/images/...vtex_c)
   dlmod text KEY=VALUE [...]           change lines of the English hero text (KEY= restores one)
-  dlmod select <hero> [bg=PIC] [name=TEXT] [logo=SVG] [tags=A,B,C] [colors=#rrggbb,...] [scene=hide]
+  dlmod select <hero> [bg=PIC] [name=TEXT] [logo=SVG] [tags=A,B,C] [colors=#rrggbb,...] [scene=hide|frame]
                                the hero select screen: background, name logo, tags, tag colours, 3D scene
   dlmod icons <hero> [ICON=PIC ...]  list or replace ability icons (pictures become white glyphs)
   dlmod meshy <hero|all> [folder] [concept=...]
                                write a Meshy workspace: per-hero prompts for a full replacement character
-  dlmod apply <workspace folder>  install the generated files of a hero's Meshy workspace
+  dlmod apply <workspace folder|pack.dlmodchar>  install the generated files of a hero's Meshy workspace or a character pack
+  dlmod pack <hero|folder> [file]  pack a character (the creator's for a hero, or a workspace folder) into one .dlmodchar file
+  dlmod unpack <file.dlmodchar>  make a character pack the hero's character in the creator
   dlmod prop <game model> <file> [particle ...] [-scale 1]  put a model in place of an ability prop (a thrown bomb)
   dlmod effects <hero> <#rrggbb|palette> [strength|name]  recolour a hero's ability and weapon particles (or: restore)
-  dlmod paint <hero> [palette|restore] [-skip NAME]  repaint a hero's ability particles, materials and textures
+  dlmod paint <hero> [palette|#a,#b,#c|restore] [-skip NAME]  repaint a hero's ability particles, materials and textures
   dlmod profile                list profiles (named sets of mods)
   dlmod profile save <name>    remember which mods are on now
   dlmod profile use <name>     switch on exactly the mods in a profile
@@ -73,6 +76,9 @@ Options:
   -scale N    for model: size on top of fitting the hero's height
   -yaw DEG    for model: turn the model around before fitting it
   -zup        for model: the file is Z-up (as Blender's .obj exports can be)
+  -steady     for model: the body follows the hips, not the spine's lean and twist
+  -no-arm-ik  for model: the arms follow the shoulders instead of being pulled to the gun by IK
+  -usual-pose for model: bind the body in the hero's usual pose over its clips (a model made upright)
   -skip LIST  for paint: ability prop names to skip (comma-separated, e.g. ivy_thornbomb_model)
   -preview DIR  for paint: write before/after PNG contact sheets into DIR without installing
 `
@@ -88,6 +94,7 @@ type options struct {
 	material       map[string]string     // imported parts drawn with a game material, by part name
 	scale, yaw     float64
 	zup            bool
+	tuning         studioOptions // for model: -steady, -no-arm-ik, -usual-pose
 }
 
 func parseArgs(argv []string) ([]string, options, error) {
@@ -170,6 +177,12 @@ func parseArgs(argv []string) ([]string, options, error) {
 			opts.plain = true
 		case "zup":
 			opts.zup = true
+		case "steady":
+			opts.tuning.SteadyBody = true
+		case "no-arm-ik":
+			opts.tuning.NoArmIK = true
+		case "usual-pose":
+			opts.tuning.UsualPose = true
 		case "h", "help":
 			opts.help = true
 		case "v", "version":
@@ -186,7 +199,7 @@ var commands = map[string]bool{
 	"install": true, "list": true, "status": true, "on": true, "enable": true, "off": true,
 	"disable": true, "remove": true, "uninstall": true, "patch": true, "repair": true,
 	"unpatch": true, "play": true, "help": true, "update": true, "profile": true, "profiles": true,
-	"search": true, "get": true, "extract": true, "model": true, "image": true, "prop": true, "effects": true, "paint": true, "text": true, "select": true, "icons": true, "meshy": true, "apply": true, "studio": true,
+	"search": true, "get": true, "extract": true, "model": true, "image": true, "prop": true, "effects": true, "paint": true, "text": true, "select": true, "icons": true, "meshy": true, "apply": true, "studio": true, "pack": true, "unpack": true,
 }
 
 // palette holds escape sequences; every field is empty when colours are off (NO_COLOR, old consoles).
@@ -369,6 +382,9 @@ func run(ui *UI, args []string, opts options) int {
 		if len(args) == 1 && isModelFile(args[0]) { // a model dropped on dlmod opens the studio with it
 			command = "studio"
 		}
+		if len(args) == 1 && strings.HasSuffix(strings.ToLower(args[0]), packExt) { // a character pack dropped on dlmod installs it
+			command = "apply"
+		}
 	}
 	if err := execute(ui, game, command, rest, opts); err != nil {
 		ui.say("%s", ui.p.paint(ui.p.red, "Error: "+err.Error()))
@@ -433,6 +449,9 @@ func execute(ui *UI, game Game, command string, args []string, opts options) err
 		}
 		return err
 	case "play":
+		if len(args) == 1 { // a hero: straight into the Hero Sandbox with it
+			return playTest(ui, game, args[0])
+		}
 		if err := ensurePatched(ui, game); err != nil {
 			return err
 		}
@@ -467,7 +486,14 @@ func execute(ui *UI, game Game, command string, args []string, opts options) err
 	case "meshy":
 		return meshyCommand(ui, game, args)
 	case "apply":
+		if len(args) == 1 && strings.HasSuffix(strings.ToLower(args[0]), packExt) {
+			return applyPack(ui, store, game, args[0], opts)
+		}
 		return applyCommand(ui, store, game, args, opts)
+	case "pack":
+		return packCommand(ui, game, args)
+	case "unpack":
+		return unpackCommand(ui, game, args)
 	case "text":
 		return textCommand(ui, game, args)
 	case "image":

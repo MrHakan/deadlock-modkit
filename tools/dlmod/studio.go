@@ -16,6 +16,7 @@ import (
 	"math"
 	"net"
 	"net/http"
+	"os"
 	"path"
 	"path/filepath"
 	"strings"
@@ -54,6 +55,10 @@ type studio struct {
 	allSounds []string
 	images    *source2.VPKIndex // the game's interface images, read on the Images tab's first use
 	particles *source2.VPKIndex // the game's particle systems, read on the Effects tab's first use
+
+	// The Create tab: the files dlmod meshy reads, and each hero's creation.
+	workIndex *source2.VPKIndex
+	sessions  map[string]*creatorSession
 }
 
 // studioOptions are the page's settings, as ImportOptions takes them.
@@ -64,6 +69,11 @@ type studioOptions struct {
 	ZUp    bool            `json:"zup"`
 	Offset [3]float64      `json:"offset"`
 	Pose   *source2.Pose   `json:"pose"` // nil to match the model's pose automatically
+
+	// Tuning for what the game does to the hero's bones (source2.RigTuning).
+	SteadyBody bool `json:"steadyBody"`
+	NoArmIK    bool `json:"noArmIK"`
+	UsualPose  bool `json:"usualPose"` // bind the body in the hero's usual pose over its clips
 
 	// The advanced rig tools' edits.
 	JointMap map[string]string     `json:"jointMap"`
@@ -77,7 +87,8 @@ func (o studioOptions) importOptions() source2.ImportOptions {
 		keep[k] = v
 	}
 	return source2.ImportOptions{Keep: keep, Scale: o.Scale, Yaw: o.Yaw, ZUp: o.ZUp, Offset: o.Offset,
-		JointMap: o.JointMap, Pins: o.Pins, Paint: o.Paint}
+		JointMap: o.JointMap, Pins: o.Pins, Paint: o.Paint,
+		Tuning: source2.RigTuning{SteadyBody: o.SteadyBody, NoArmIK: o.NoArmIK}}
 }
 
 // runStudio serves the studio until dlmod is closed. A model file given (dropped on dlmod) is
@@ -92,6 +103,9 @@ func runStudio(ui *UI, game Game, preload ...string) error {
 	}
 	ui.say("The model studio is at %s", url)
 	ui.say("It opens in your browser; leave this window open while you use it, and press Ctrl+C to stop.")
+	if os.Getenv("DLMOD_NO_BROWSER") != "" { // headless use and tests
+		return serve()
+	}
 	if err := openInPlayer(url); err != nil {
 		ui.say("Open the address above in your browser.")
 	}
@@ -187,6 +201,10 @@ func (s *studio) routes() http.Handler {
 	api("effects", s.effectList)
 	api("effects/apply", s.effectApply)
 	api("effects/restore", s.effectRestore)
+	s.abilityRoutes(api)
+	api("play", s.playTest)
+	s.clipRoutes(api)
+	s.creatorRoutes(api) // the Create tab, when dlmod is built with Meshy (creator.go)
 	return mux
 }
 
@@ -427,6 +445,19 @@ func (s *studio) texture(r *http.Request) (any, error) {
 // rigged fits and rigs the model for the given options, reusing the last result when they match.
 func (s *studio) rigFor(o studioOptions) (*source2.Rigged, error) {
 	key, _ := json.Marshal(o)
+	var usual map[string][12]float64
+	if o.UsualPose { // read from the clips before taking the lock the clip reading needs
+		s.mu.Lock()
+		hero := s.hero
+		s.mu.Unlock()
+		h, err := s.heroAnimation(hero)
+		if err == nil {
+			usual, err = h.usualPose()
+		}
+		if err != nil {
+			return nil, fmt.Errorf("the hero's usual pose could not be read: %v", err)
+		}
+	}
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	if s.model == nil {
@@ -438,17 +469,23 @@ func (s *studio) rigFor(o studioOptions) (*source2.Rigged, error) {
 	if s.rigged != nil && s.rigKey == string(key) {
 		return s.rigged, nil
 	}
-	opts := o.importOptions()
-	fitted, err := s.model.Fit(s.mesh, opts)
-	if err != nil {
-		return nil, err
-	}
-	rigged, err := s.model.AutoRig(fitted, opts, o.Pose, 4)
+	rigged, err := rigWith(s.model, s.mesh, o, usual)
 	if err != nil {
 		return nil, err
 	}
 	s.rigKey, s.rigged = string(key), rigged
 	return rigged, nil
+}
+
+// rigWith fits and rigs a model on the hero with the page's options, without the studio's cache.
+func rigWith(model *source2.Model, mesh *source2.ImportedMesh, o studioOptions, usual map[string][12]float64) (*source2.Rigged, error) {
+	opts := o.importOptions()
+	opts.Tuning.UsualPose = usual
+	fitted, err := model.Fit(mesh, opts)
+	if err != nil {
+		return nil, err
+	}
+	return model.AutoRig(fitted, opts, o.Pose, 4)
 }
 
 func (s *studio) rig(r *http.Request) (any, error) {

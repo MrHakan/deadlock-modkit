@@ -66,7 +66,8 @@ dlmod compiles the file into the game's sound format itself, with no Valve tools
 | `dlmod remove <mod>` | Delete a mod. |
 | `dlmod patch` / `dlmod unpatch` | Add or remove dlmod's `gameinfo.gi` lines. `unpatch` restores Valve's file exactly. |
 | `dlmod play` | Patch if needed, then start Deadlock through Steam. |
-| `dlmod update` | Download the Counter Intelligence HUD built for the installed game build from GitHub Releases, check it against GitHub's published SHA-256, and install it in place of the old version. |
+| `dlmod play <hero>` | The same, straight into the Hero Sandbox as that hero, to check a character (Steam asks before it uses the launch options). |
+| `dlmod update` | Download the Counter Intelligence HUD built for the installed game build from the project's [GitLab releases](https://gitlab.com/mrhakan/deadlock-modkit/-/releases), check it against the `.sha256` file published with it (a release without one is refused), and install it in place of the old version. |
 | `dlmod search <words> [-hero H] [-category C]` | Search the online catalog, for example `dlmod search -hero wraith` or `dlmod search catgirl`. |
 | `dlmod get <id or GameBanana address>` | Download and install a mod, for example `dlmod get https://gamebanana.com/mods/634614`. |
 | `dlmod profile save <name>` / `use <name>` / `delete <name>` | Remember which mods are on, switch on exactly that set later (everything else is switched off, not deleted), or forget a profile. `dlmod profile` lists them. |
@@ -75,9 +76,10 @@ dlmod compiles the file into the game's sound format itself, with no Valve tools
 | `dlmod model <hero> <file>` | Put a model on a hero without the studio. |
 | `dlmod select <hero> [bg=… name=… logo=… tags=… colors=… scene=hide]` | Set the hero select screen for a replacement character. |
 | `dlmod image <game image> <picture>` / `dlmod icons <hero> [n=picture]` | Replace cards, portraits and ability icons. |
-| `dlmod prop <game model> <file>` / `dlmod paint <hero>` / `dlmod effects <hero> <#colour>` | Replace an ability model, recolour ability effects. |
+| `dlmod prop <game model> <file>` / `dlmod paint <hero> [#main,#accent,#glow]` / `dlmod effects <hero> <#colour>` | Replace an ability model, recolour ability effects (with up to three colours of your own, or the cobalt palette). |
 | `dlmod text KEY=VALUE` | Change a line of the English hero text. |
-| `dlmod meshy <hero or all> [folder] [concept=…]` / `dlmod apply <folder>` | Write per-hero Meshy prompts for a full replacement character, and install what was generated. |
+| `dlmod meshy <hero or all> [folder] [concept=…]` / `dlmod apply <folder or pack>` | Write per-hero Meshy prompts for a full replacement character, and install what was generated, or a character pack. |
+| `dlmod pack <hero or folder> [file]` / `dlmod unpack <file.dlmodchar>` | Pack a character into one `.dlmodchar` file to keep or share, and make a pack the hero's character in the creator. |
 
 The character commands are explained in [Custom characters](custom-characters.md).
 

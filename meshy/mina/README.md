@@ -25,6 +25,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 | --- | --- | --- |
 | Model | `models/heroes_wip/vampirebat/vampirebat.vmdl` | 101 units tall |
 | Animation skeleton | `models/heroes_wip/vampirebat/vampirebat.vnmskel` | |
+| Animation clips | `models/heroes_wip/vampirebat/clips/` | 211 clips |
 | Hero card (hero select, HUD) | `panorama/images/heroes/vampirebat_card_psd.vtex_c` | 280x380 |
 | Card at low health | `panorama/images/heroes/vampirebat_card_critical_psd.vtex_c` | 280x380 |
 | Card after a kill | `panorama/images/heroes/vampirebat_card_gloat_psd.vtex_c` | 280x380 |
@@ -47,7 +48,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 
 ## Animations
 
-The game plays Mina's own 0 clips on whatever model is installed, so a replacement is rigged to Mina's bones rather than given new animations. What the game does to those clips matters:
+The game plays Mina's own 211 clips on whatever model is installed, so a replacement is rigged to Mina's bones rather than given new animations. What the game does to those clips matters:
 
 - Melee, reloads and casts are laid over the movement through bone masks (`Reload_Idle`, `Reload_InAir`, `Reload_Slide`, `Reload_Haspath`, `Reload_HasPathCrouch`, `melee_UpperBody`, `Reload_Crouch`, `Parry_UpperBody`, `melee_dash`, `FullBody`, `Cast_UpperBody`, `root`, `Throw_UpperBody`, `Turn_LowerBody`, `UpperBodyReplace_AirDash`, `UpperBodyReplace_Asleep`, `UpperBodyReplace_Asleep_Channeling`, `UpperBodyReplace_GroundDash`, `UpperBodyReplace_InAir`, `UpperBodyReplace_Shopping`, `UpperBodyReplace_Slide`, `UpperBodyReplace_Turn`, `zero`): only the upper body takes the clip, so a fit to the whole clip is wrong in game.
 - The hero graph solves both arms by IK towards the gun (`weaponHand_L`, `weaponHand_R`) and the legs towards `leg_*_IKTARGET`, so the arm bones in game are not what the clips say. Body parts that should follow the hero safely use `head`, `neck_0`, the spine, the clavicles, `pelvis` and the leg IK targets.

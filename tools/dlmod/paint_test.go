@@ -204,3 +204,19 @@ func TestEffectsCommandPaletteMode(t *testing.T) {
 		t.Fatalf("settings.json missing: %v", err)
 	}
 }
+
+func TestPaletteFromColors(t *testing.T) {
+	p, err := LookupPalette("#2467FF, #FF3B3B ,#7AB6FF")
+	if err != nil || p.Primary != [3]float64{0x24, 0x67, 0xFF} || p.Accent != [3]float64{0xFF, 0x3B, 0x3B} || p.Glow != [3]float64{0x7A, 0xB6, 0xFF} {
+		t.Fatalf("three colours: %+v %v", p, err)
+	}
+	one, err := LookupPalette("#112233")
+	if err != nil || one.Accent != one.Primary || one.Glow[0] <= one.Primary[0] {
+		t.Fatalf("one colour: the accent repeats it and the glow is lighter: %+v %v", one, err)
+	}
+	for _, bad := range []string{"#12345", "#112233,#zzzzzz", "#1,#2,#3,#4", "neon"} {
+		if _, err := LookupPalette(bad); err == nil {
+			t.Errorf("%q was accepted", bad)
+		}
+	}
+}

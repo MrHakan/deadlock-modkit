@@ -1,7 +1,7 @@
 // Command genabilities writes tools/dlmod/hero_abilities.go: each hero's four abilities in slot
-// order, with their class names (the keys of their text) and the base names of their icons. The
-// game keeps this in scripts/abilities.vdata, which is zstd-compressed and dlmod cannot read, so
-// the table comes from deadlock-api's copy of the game data for one client build:
+// order, with their class names (the keys of their text) and the base names of their icons. dlmod
+// reads these from the game's scripts/heroes.vdata and scripts/abilities.vdata; this table, from
+// deadlock-api's copy of the game data for one client build, is the fallback when it cannot:
 //
 //	go run ./internal/genabilities 6864 > hero_abilities.go
 package main

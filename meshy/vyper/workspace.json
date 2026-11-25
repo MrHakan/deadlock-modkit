@@ -327,6 +327,18 @@
     "modelFolder": "models/heroes_staging/viper/",
     "height": 108.35592269897461,
     "skeleton": "models/heroes_staging/viper/viper.vnmskel",
+    "clipFolder": "models/heroes_staging/viper/clips/",
+    "clips": 222,
+    "keyClips": [
+      "weapon_idle",
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle",
+      "weapon_shoot"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "melee_UpperBody",
@@ -471,6 +483,6 @@
       "Citadel_Viper_HeroTag_2",
       "Citadel_Viper_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

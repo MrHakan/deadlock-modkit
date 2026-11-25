@@ -27,6 +27,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 | --- | --- | --- |
 | Model | `models/heroes_wip/pocket/pocket.vmdl` | 94 units tall |
 | Animation skeleton | `models/heroes_staging/synth/synth.vnmskel` | |
+| Animation clips | `models/heroes_staging/synth/clips/` | 178 clips |
 | Hero card (hero select, HUD) | `panorama/images/heroes/synth_card_psd.vtex_c` | 280x380 |
 | Card at low health | `panorama/images/heroes/synth_card_critical_psd.vtex_c` | 280x380 |
 | Card after a kill | `panorama/images/heroes/synth_card_gloat_psd.vtex_c` | 280x380 |
@@ -54,8 +55,9 @@ Set the character's description (`concept`), the name and tags shown on the hero
 
 ## Animations
 
-The game plays Pocket's own 0 clips on whatever model is installed, so a replacement is rigged to Pocket's bones rather than given new animations. What the game does to those clips matters:
+The game plays Pocket's own 178 clips on whatever model is installed, so a replacement is rigged to Pocket's bones rather than given new animations. What the game does to those clips matters:
 
+- Clips worth checking a rig against: `out_of_combat_idle`, `weapon_run_n`, `weapon_crouch_idle`, `melee_quick_1`, `melee_hit`.
 - Melee, reloads and casts are laid over the movement through bone masks (`Cast_UpperBody`, `melee_UpperBody`, `Parry_UpperBody`, `Reload_Crouch`, `Reload_Haspath`, `Reload_HasPathCrouch`, `Reload_Idle`, `Reload_InAir`, `Reload_Slide`, `Throw_UpperBody`, `UpperBodyReplace_Asleep`, `UpperBodyReplace_InAir`, `UpperBodyReplace_Slide`, `UpperBodyReplace_Turn`, `ability_barrage`, `zero`): only the upper body takes the clip, so a fit to the whole clip is wrong in game.
 - The hero graph solves both arms by IK towards the gun (`weaponHand_L`, `weaponHand_R`) and the legs towards `leg_*_IKTARGET`, so the arm bones in game are not what the clips say. Body parts that should follow the hero safely use `head`, `neck_0`, the spine, the clavicles, `pelvis` and the leg IK targets.
 - `attachWorld` never moves: weight on it keeps a part steady. `root_motion` is the character's place; its rest pose in the file is turned, which dlmod corrects.

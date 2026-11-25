@@ -309,6 +309,14 @@
     "modelFolder": "models/heroes_staging/shiv/",
     "height": 108.25365877151489,
     "skeleton": "models/heroes_staging/shiv/shiv.vnmskel",
+    "clipFolder": "models/heroes_staging/shiv/clips/",
+    "clips": 182,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",
@@ -454,6 +462,6 @@
       "Citadel_Shiv_HeroTag_2",
       "Citadel_Shiv_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

@@ -321,6 +321,14 @@
     "modelFolder": "models/heroes_wip/doorman_v2/",
     "height": 125.79904556274414,
     "skeleton": "models/heroes_wip/doorman_v2/doorman.vnmskel",
+    "clipFolder": "models/heroes_wip/doorman_v2/clips/",
+    "clips": 224,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",
@@ -471,6 +479,6 @@
       "Citadel_Doorman_HeroTag_2",
       "Citadel_Doorman_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

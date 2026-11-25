@@ -310,6 +310,14 @@
     "modelFolder": "models/heroes_staging/chrono/",
     "height": 101.26179075241089,
     "skeleton": "models/heroes_staging/chrono/chrono.vnmskel",
+    "clipFolder": "models/heroes_staging/chrono/clips/",
+    "clips": 226,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "melee_UpperBody",
@@ -428,6 +436,6 @@
       "Citadel_Chrono_HeroTag_2",
       "Citadel_Chrono_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

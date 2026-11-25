@@ -344,6 +344,15 @@
     "modelFolder": "models/heroes_staging/warden/",
     "height": 108.95374900102615,
     "skeleton": "models/heroes_staging/warden/warden.vnmskel",
+    "clipFolder": "models/heroes_staging/warden/clip/",
+    "clips": 166,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "melee_UpperBody",
@@ -467,6 +476,6 @@
       "Citadel_Warden_HeroTag_2",
       "Citadel_Warden_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

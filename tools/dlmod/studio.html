@@ -27,11 +27,18 @@ button:hover:not(:disabled) { border-color: var(--accent-dim); }
 button:disabled { opacity: .45; cursor: default; }
 button.primary { background: var(--accent); color: #1a1407; border-color: var(--accent); font-weight: 600; width: 100%; padding: 9px; }
 .drop { border: 1.5px dashed var(--line); border-radius: 10px; padding: 18px 12px; text-align: center; color: var(--dim); cursor: pointer; }
+.refdrop { padding: 10px; font-size: 12px; }
+.refdrop.full { opacity: .5; pointer-events: none; }
+.refs { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin: 6px 0; }
+.ref { position: relative; aspect-ratio: 1; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: #0d0e11; }
+.ref img { width: 100%; height: 100%; object-fit: cover; }
+.ref button { position: absolute; top: 3px; right: 3px; padding: 0 6px; font-size: 12px; line-height: 18px; }
 .drop.over { border-color: var(--accent); color: var(--text); background: #221f17; }
 .drop b { color: var(--text); display: block; margin-bottom: 2px; }
 .row { display: grid; grid-template-columns: 64px 1fr 52px; align-items: center; gap: 8px; margin: 6px 0; }
 .row label { color: var(--dim); font-size: 12px; }
 .row output { font-variant-numeric: tabular-nums; text-align: right; font-size: 12px; }
+.row input.num { width: 52px; padding: 3px 4px; font-size: 12px; text-align: right; font-variant-numeric: tabular-nums; box-sizing: border-box; }
 input[type=range] { width: 100%; accent-color: var(--accent); }
 .buttons { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
 .buttons button { flex: 1; font-size: 12px; padding: 5px 6px; }
@@ -102,8 +109,80 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 .swatch { border-radius: 8px; overflow: hidden; border: 1px solid var(--line); }
 .swatch .halves { display: grid; grid-template-columns: 1fr 1fr; height: 46px; }
 .swatch small { display: block; font-size: 10px; color: var(--dim); padding: 2px 6px; background: var(--panel); font-variant-numeric: tabular-nums; }
+/* Create tab: the character creator */
+.qs label.q { display: block; font-size: 12px; color: var(--dim); margin: 10px 0 4px; }
+.qs textarea, .gen textarea { width: 100%; font: inherit; font-size: 12px; color: var(--text); background: #1b1d23; border: 1px solid var(--line);
+  border-radius: 6px; padding: 6px 8px; resize: vertical; }
+.qs textarea:focus, .gen textarea:focus, .qs input:focus { outline: none; border-color: var(--accent-dim); }
+.colors { display: flex; gap: 6px; align-items: center; }
+.colors input[type=color] { width: 44px; height: 30px; padding: 2px; border: 1px solid var(--line); border-radius: 6px; background: #23262e; cursor: pointer; }
+.tagins { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.credits { color: var(--accent); font-variant-numeric: tabular-nums; }
+.steps { display: flex; flex-direction: column; gap: 20px; max-width: 1180px; margin: 0 auto; }
+.stepper { display: flex; gap: 6px; flex-wrap: wrap; position: sticky; top: -14px; background: var(--bg); padding: 8px 0 10px; z-index: 2; }
+.stepper span { font-size: 12px; padding: 4px 11px; border-radius: 99px; border: 1px solid var(--line); color: var(--dim); }
+.stepper span.done { border-color: #3d5a43; color: var(--ok); }
+.stepper span.now { border-color: var(--accent); color: var(--text); }
+.gen-group > h2 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--dim); margin: 0 0 8px; font-weight: 600; }
+.gen-stack { display: flex; flex-direction: column; gap: 12px; }
+.pictures-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.gen { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.gen.locked { opacity: .6; }
+.gen header { display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.gen header h3 { margin: 0; font-size: 14px; }
+.gen header small { color: var(--dim); font-size: 11px; }
+.gen .controls { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+.gen .controls select { width: auto; flex: 1 1 170px; font-size: 12px; }
+.gen .controls button.go { background: var(--accent); color: #1a1407; border-color: var(--accent); font-weight: 600; flex: 0 0 auto; }
+.gen details summary { font-size: 12px; color: var(--dim); cursor: pointer; }
+.gen details textarea { margin-top: 6px; min-height: 90px; }
+.gen .lock, .gen .note2 { font-size: 12px; color: var(--dim); }
+.results { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 8px; }
+.result { position: relative; border: 2px solid transparent; border-radius: 9px; background: #16181d; overflow: hidden; display: flex; flex-direction: column; }
+.result.done { cursor: pointer; }
+.result.done:hover { border-color: var(--accent-dim); }
+.result.kept, .result.kept:hover { border-color: var(--accent); }
+.result .imgs { display: grid; grid-template-columns: repeat(auto-fit, minmax(50px, 1fr)); gap: 2px; }
+.result img { width: 100%; display: block; background: repeating-conic-gradient(#25272e 0% 25%, #1c1e24 0% 50%) 50% / 16px 16px; }
+.result .edit { position: absolute; top: 6px; right: 6px; font-size: 11px; padding: 2px 8px; opacity: .85; }
+.result .badge { position: absolute; top: 6px; left: 6px; font-size: 11px; background: var(--accent); color: #1a1407; padding: 1px 8px;
+  border-radius: 99px; font-weight: 600; }
+.result .meta { font-size: 11px; color: var(--dim); padding: 5px 7px; }
+.result.failed .meta { color: var(--bad); }
+.result .wait { min-height: 110px; display: grid; place-items: center; color: var(--dim); font-size: 12px; text-align: center; padding: 8px; }
+.bar { height: 6px; background: #262931; border-radius: 99px; overflow: hidden; margin: 0 7px 6px; }
+.bar i { display: block; height: 100%; width: 0; background: var(--accent); border-radius: 99px; transition: width .8s ease; }
+.bar.queue i { width: 30%; background: var(--accent-dim); animation: queue 1.5s ease-in-out infinite; }
+@keyframes queue { 0% { transform: translateX(-100%); } 100% { transform: translateX(340%); } }
+.pack-row { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); font-size: 12px; }
+.pack-row small { color: var(--dim); font-size: 11px; }
+.checks { width: 100%; border-collapse: collapse; font-size: 11px; margin-top: 6px; font-variant-numeric: tabular-nums; }
+.checks th, .checks td { text-align: left; padding: 3px 4px; border-bottom: 1px solid var(--line); }
+.checks th { color: var(--dim); font-weight: 500; }
+.checks tr.bad td { color: #ff8a7a; }
+.checks tr.meh td { color: #f0c96a; }
+.suggestion { margin-top: 8px; padding: 6px 8px; border: 1px solid var(--line); border-radius: 8px; }
+.suggestion button { margin-top: 6px; }
+.abilities { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.ability .head { display: flex; gap: 10px; align-items: center; }
+.ability .slot { width: 22px; height: 22px; border-radius: 50%; background: #23262e; display: grid; place-items: center; font-size: 11px; color: var(--dim); flex: none; }
+.ability p { margin: 0; font-size: 12px; color: var(--dim); line-height: 1.45; }
+.ability .quip { color: var(--text); font-style: italic; }
+.ability .values { display: flex; flex-wrap: wrap; gap: 4px; }
+.ability .values span { font-size: 11px; background: #23262e; border-radius: 6px; padding: 2px 7px; font-variant-numeric: tabular-nums; }
+.ability .pair { display: flex; flex-wrap: wrap; gap: 8px; }
+.ability figure { margin: 0; text-align: center; }
+.ability figcaption { font-size: 10px; color: var(--dim); max-width: 130px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ability .icon { width: 64px; height: 64px; background: #0d0e11; border: 1px solid var(--line); border-radius: 8px; object-fit: contain; }
+.ability .prop { width: 120px; height: 120px; background: #0d0e11; border: 1px solid var(--line); border-radius: 8px; }
+.ability .strip { display: flex; height: 14px; border-radius: 4px; overflow: hidden; border: 1px solid var(--line); }
+.ability .strip div { flex: 1; }
+.ability .label { font-size: 11px; color: var(--dim); margin-bottom: 3px; }
+.ability .mod { color: #8fd19e; }
+@media (max-width: 760px) { .pictures-grid { grid-template-columns: 1fr; } .tagins { grid-template-columns: 1fr; } }
 [hidden] { display: none !important; }
-@media (max-width: 760px) { .app { grid-template-columns: 1fr; grid-template-rows: auto 60vh; } aside { border-right: 0; } }
+@media (max-width: 760px) { html, body { height: auto; } .app { height: auto; grid-template-columns: 1fr; grid-template-rows: auto 80vh; }
+  aside { border-right: 0; overflow: visible; } }
 </style>
 </head>
 <body>
@@ -117,10 +196,79 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <select id="hero"><option value="">Pick a hero…</option></select>
     <div class="info" id="heroInfo"></div>
     <nav class="tabs" id="tabs">
-      <button data-tab="model" class="on">Model</button><button data-tab="sounds">Sounds</button>
+      <button data-tab="create" id="createTabButton">Create</button><button data-tab="model" class="on">Model</button><button data-tab="abilities">Abilities</button><button data-tab="sounds">Sounds</button>
       <button data-tab="images">Images</button><button data-tab="text">Text</button><button data-tab="effects">Effects</button>
     </nav>
   </section>
+
+  <div id="tab-create" hidden>
+  <section>
+    <h2>Meshy</h2>
+    <div id="meshyKeyBox" hidden>
+      <div class="info">The creator makes your character with <b>Meshy</b>. Paste your API key from meshy.ai → Settings → API.
+        It stays on this computer and is only sent to Meshy. Every step shows its price and asks before spending credits.</div>
+      <input type="password" id="meshyKey" placeholder="msy_…" autocomplete="off" style="margin-top:8px">
+      <div class="buttons"><button id="meshyKeySave">Save key</button></div>
+    </div>
+    <div class="info" id="meshyBalance"></div>
+  </section>
+  <section class="qs">
+    <h2>1 · Your character</h2>
+    <label class="q" for="qName">Name</label>
+    <input type="text" id="qName" placeholder="Rook" maxlength="40">
+    <label class="q">What is it?</label>
+    <div class="chips" data-q="what"><button>Human</button><button>Creature</button><button>Robot</button><button>Animal</button><button>Alien</button><button>Monster</button><button>Spirit</button></div>
+    <label class="q">Body</label>
+    <div class="chips" data-q="body"><button data-v="humanoid">Arms and legs</button><button data-v="round">Round, no legs</button><button data-v="quadruped">Four legs</button></div>
+    <label class="q">Style</label>
+    <div class="chips" data-q="style"><button>Stylized cartoon</button><button>Painterly</button><button>Realistic</button><button>Toy</button><button>Anime</button><button>Claymation</button></div>
+    <label class="q">Main colours</label>
+    <div class="colors"><input type="color" id="qC1" value="#2a6fdb"><input type="color" id="qC2" value="#e8b04b"><input type="color" id="qC3" value="#f2efe8">
+      <label class="info" style="display:flex;gap:5px;align-items:center"><input type="checkbox" id="qColors" checked> use them</label></div>
+    <label class="q" for="qItem">It holds</label>
+    <input type="text" id="qItem" placeholder="a weapon or prop">
+    <label class="q" for="qDetails">Anything else</label>
+    <textarea id="qDetails" rows="3" placeholder="clothes, materials, face, personality…"></textarea>
+    <label class="q">Reference pictures (optional)</label>
+    <div class="drop refdrop" id="refDrop">Drop pictures of your character here, or click to pick them: a sketch, concept art, a photo of a figure. Up to 4, PNG or JPEG.
+      <input type="file" id="refFile" accept="image/png,image/jpeg,image/gif" multiple hidden></div>
+    <div class="refs" id="refList"></div>
+    <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="refAll"> Use them for every picture, not only the design sheet</label>
+    <label class="q">Tags on the hero select screen</label>
+    <div class="tagins"><input type="text" id="qT1" maxlength="16"><input type="text" id="qT2" maxlength="16"><input type="text" id="qT3" maxlength="16"></div>
+    <div class="buttons" style="margin-top:10px"><button class="primary" id="qSave">Write the prompts</button></div>
+    <label class="q" for="qConcept">Description the prompts use (edit it freely)</label>
+    <textarea id="qConcept" rows="4"></textarea>
+    <div class="buttons"><button id="qConceptSave">Use this description</button></div>
+    <div class="info" id="qInfo"></div>
+  </section>
+  <section>
+    <h2>Install</h2>
+    <div class="info">The 3D model goes to the Model tab to be rigged and installed. The hero select art, cards, icons and ability models you keep install here, with the name, tags and colours above.</div>
+    <label class="info" style="display:flex;gap:6px;align-items:center;margin-top:6px"><input type="checkbox" id="crEffects" checked> Recolour the hero's ability effects with my three colours</label>
+    <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="crFrame"> Show my 3D model on the hero select screen, in front of the picture (install the model first)</label>
+    <div class="buttons"><button class="primary" id="crInstall" disabled>Install in the game</button></div>
+    <div class="info" id="crFolder" style="margin-top:6px;word-break:break-all"></div>
+    <div class="log" id="crLog"></div>
+  </section>
+  <section>
+    <h2>Characters for this hero</h2>
+    <div class="info">Keep several characters for one hero: save this one, switch to another (the one open is saved first), or share one as a single .dlmodchar file. <code>dlmod apply file.dlmodchar</code> installs a pack, and dropping one on dlmod does too.</div>
+    <div id="crPacks"></div>
+    <div class="buttons"><button id="crPackSave">Save this character</button><button id="crPackDownload">Download as a pack</button></div>
+    <div class="buttons"><button id="crPackOpen">Open a pack file…</button><input type="file" id="crPackFile" accept=".dlmodchar,.zip" hidden></div>
+  </section>
+  </div>
+
+  <div id="tab-abilities" hidden>
+  <section>
+    <h2>Abilities</h2>
+    <div class="info">The hero's four abilities as the game will show them with the mods that are switched on, without starting it: the icon, the colours of the effects and the models they throw or place, each next to the game's own. Nothing here changes the game.</div>
+    <div class="row"><label for="abYaw">Turn models</label><input type="range" id="abYaw" min="0" max="345" step="15" value="30"><output id="abYawOut">30°</output></div>
+    <div class="buttons"><button id="abRefresh">Read the mods again</button></div>
+    <div class="info" id="abNote"></div>
+  </section>
+  </div>
 
   <div id="tab-effects" hidden>
   <section>
@@ -192,11 +340,11 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
 
   <section>
     <h2>3 · Fit</h2>
-    <div class="row"><label for="scale">Size</label><input type="range" id="scale" min="0.5" max="1.5" step="0.01" value="1"><output id="scaleOut">100%</output></div>
-    <div class="row"><label for="yaw">Turn</label><input type="range" id="yaw" min="-180" max="180" step="1" value="0"><output id="yawOut">0°</output></div>
-    <div class="row"><label for="offx">Forward</label><input type="range" id="offx" min="-20" max="20" step="0.5" value="0"><output id="offxOut">0</output></div>
-    <div class="row"><label for="offy">Sideways</label><input type="range" id="offy" min="-20" max="20" step="0.5" value="0"><output id="offyOut">0</output></div>
-    <div class="row"><label for="offz">Up</label><input type="range" id="offz" min="-20" max="20" step="0.5" value="0"><output id="offzOut">0</output></div>
+    <div class="row"><label for="scale">Size %</label><input type="range" id="scale" min="0.1" max="3" step="0.01" value="1"><input type="number" class="num" id="scaleOut" min="1" step="1" value="100" title="Size in percent of the hero's height: type any value"></div>
+    <div class="row"><label for="yaw">Turn °</label><input type="range" id="yaw" min="-180" max="180" step="1" value="0"><input type="number" class="num" id="yawOut" min="-180" max="180" step="1" value="0" title="Degrees"></div>
+    <div class="row"><label for="offx">Forward</label><input type="range" id="offx" min="-150" max="150" step="0.5" value="0"><input type="number" class="num" id="offxOut" step="0.5" value="0" title="Game units: type any value"></div>
+    <div class="row"><label for="offy">Sideways</label><input type="range" id="offy" min="-150" max="150" step="0.5" value="0"><input type="number" class="num" id="offyOut" step="0.5" value="0" title="Game units: type any value"></div>
+    <div class="row"><label for="offz">Up</label><input type="range" id="offz" min="-150" max="150" step="0.5" value="0"><input type="number" class="num" id="offzOut" step="0.5" value="0" title="Game units: type any value"></div>
     <div class="buttons">
       <button data-turn="-90">↺ 90°</button><button data-turn="90">↻ 90°</button><button data-turn="180">Face back</button>
       <button id="zup" title="Blender exports .obj files Z-up">Z is up: off</button>
@@ -218,6 +366,15 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
       <button data-bend="0,0">Bind pose</button><button data-bend="-45,0">Arms up</button>
       <button data-bend="40,0">Arms down</button><button data-bend="0,15">Legs apart</button>
     </div>
+    <div id="tuning" hidden>
+      <label class="info" style="display:flex;gap:6px;align-items:center;margin-top:8px"><input type="checkbox" id="tuneSteady"> Steady body: the body follows the hips, not the spine's lean and twist</label>
+      <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="tuneNoArmIK"> Arms without IK: arms follow the shoulders, not the gun</label>
+      <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="tuneUsual"> Bind the body in the hero's usual pose (its lean while moving)</label>
+      <div class="buttons"><button id="rigCheck">Check against the game's clips</button></div>
+      <div class="info" id="rigCheckInfo"></div>
+      <table class="checks" id="rigCheckTable" hidden></table>
+      <div id="rigSuggestions"></div>
+    </div>
   </section>
 
   <section id="advanced" hidden>
@@ -227,13 +384,21 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
       <button data-tool="pin">Pin pieces</button><button data-tool="joints" id="jointsTool">Joint map</button>
     </div>
     <div id="tool-pose" style="margin-top:8px">
+      <div class="row"><label for="clipName">Clip</label><select id="clipName"></select></div>
+      <div class="row"><label for="clipOver">Over</label><select id="clipOver"></select></div>
+      <div class="row"><label for="clipMask">Mask</label><select id="clipMask"></select></div>
+      <label class="info" style="display:flex;gap:6px;align-items:center"><input type="checkbox" id="clipIK" checked> Arms reach for the gun and feet for the ground (IK), as in game</label>
+      <div class="buttons"><button class="primary" id="clipPlay" disabled>Play the game's clip</button></div>
+      <div class="info" id="clipInfo"></div>
+      <div class="info" style="margin-top:8px">Quick bends:</div>
       <div class="buttons">
         <button data-anim="walk">Walk</button><button data-anim="run">Run</button><button data-anim="crouch">Crouch</button>
         <button data-anim="jump">Jump</button><button data-anim="armsup">Arms up</button><button data-anim="look">Look around</button>
       </div>
       <div class="buttons"><button data-anim="">Stop</button></div>
       <div class="info" style="margin-top:6px">The hero's own skeleton bends here and moves your model by its weights, as the game does.
-        The motions are made up to show how the rig bends; the game's own animation clips are not read yet.</div>
+        The clips are the hero's own. Melee, reloads and casts play in game over the movement through a bone mask, which is
+        picked for them here; the game blends more layers than this, so treat it as close, not exact. The quick bends are made up.</div>
     </div>
     <div id="tool-weights" hidden style="margin-top:8px">
       <select id="weightBone"></select>
@@ -260,6 +425,7 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
   <section>
     <h2>6 · Install</h2>
     <button class="primary" id="install" disabled>Install on hero</button>
+    <div class="buttons"><button id="playTest" disabled>Test in the game: the Hero Sandbox as this hero</button></div>
     <div class="log" id="log"></div>
   </section>
   </div>
@@ -278,6 +444,10 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
     <div class="empty-panel" id="imagesEmpty">Pick a hero to see their images.</div>
     <div class="grid" id="imageGrid"></div>
   </div>
+  <div class="panel" id="abilitiesPanel" hidden>
+    <div class="empty-panel" id="abilitiesEmpty">Pick a hero to see their abilities.</div>
+    <div class="abilities" id="abilityList"></div>
+  </div>
   <div class="panel" id="effectsPanel" hidden>
     <div class="empty-panel" id="effectsEmpty">Pick a hero to see their effect colours.</div>
     <div class="swatches" id="swatches"></div>
@@ -285,6 +455,21 @@ input[type=search], input[type=text] { font: inherit; color: var(--text); backgr
   <div class="panel" id="textPanel" hidden>
     <div class="empty-panel" id="textEmpty">Pick a hero to see their text.</div>
     <div id="textList"></div>
+  </div>
+  <div class="panel" id="createPanel" hidden>
+    <div class="empty-panel" id="createEmpty">Pick a hero, then describe your character on the left.</div>
+    <div class="steps" id="createSteps" hidden>
+      <div class="stepper" id="stepper"></div>
+      <div class="gen-group"><h2>Character</h2><div class="gen-stack" id="stepsCharacter"></div></div>
+      <div class="gen-group"><h2>3D model</h2><div class="gen-stack" id="stepsModel"></div>
+        <div class="buttons" style="margin-top:10px"><button class="primary" id="crImport" disabled>Open the model on the Model tab and rig it on the hero</button></div></div>
+      <div class="gen-group"><h2>Pictures for the game</h2>
+        <div class="buttons" style="margin-bottom:8px"><button class="primary" id="crBatch" disabled>Make every ready picture</button></div>
+        <div class="pictures-grid" id="stepsPictures"></div></div>
+      <div class="gen-group" id="propsGroup"><h2>Ability models</h2>
+        <div class="info" style="margin-bottom:8px">Bombs, traps and statues the abilities throw or place: a picture of each from the design sheet, then a 3D model of it.</div>
+        <div class="pictures-grid" id="stepsProps"></div></div>
+    </div>
   </div>
   <div class="toggles">
     <label><input type="checkbox" id="showHero" checked> hero</label>
@@ -405,7 +590,8 @@ function drawModel(positions, colors) {
 function options() {
   return { keep: state.keep, scale: +$("scale").value, yaw: +$("yaw").value, zup: state.zup,
     offset: [+$("offx").value, +$("offy").value, +$("offz").value], pose: null,
-    jointMap: adv.joints, pins: adv.pins, paint: paintStrokes() };
+    jointMap: adv.joints, pins: adv.pins, paint: paintStrokes(),
+    steadyBody: $("tuneSteady").checked, noArmIK: $("tuneNoArmIK").checked, usualPose: $("tuneUsual").checked };
 }
 // The advanced rig tools' state; the edits go with every rig and install (options above).
 const adv = { joints: {}, pins: {}, paint: new Map(), tool: "pose", anim: "", picked: -1 };
@@ -463,8 +649,8 @@ function fitted() {
 }
 function refresh() {
   for (const id of ["scale", "yaw", "offx", "offy", "offz"]) {
-    const v = +$(id).value;
-    $(id + "Out").textContent = id === "scale" ? Math.round(v * 100) + "%" : id === "yaw" ? v + "°" : v;
+    const v = +$(id).value, box = $(id + "Out");
+    if (document.activeElement !== box) box.value = id === "scale" ? Math.round(v * 100) : v; // not while it is being typed in
   }
   $("zup").textContent = "Z is up: " + (state.zup ? "on" : "off");
   if (state.rig) { state.rig = null; $("rigInfo").textContent = "Settings changed: rig again to check."; $("bendButtons").hidden = true;
@@ -505,7 +691,7 @@ $("hero").onchange = async () => {
 const heroHooks = []; // tabs that show something of the hero reload when it changes
 
 // --- tabs: the model tab shows the 3D view, the others their own panel over it ---
-const panels = { sounds: "soundsPanel", images: "imagesPanel", text: "textPanel", effects: "effectsPanel" };
+const panels = { create: "createPanel", abilities: "abilitiesPanel", sounds: "soundsPanel", images: "imagesPanel", text: "textPanel", effects: "effectsPanel" };
 let tab = "model";
 function showTab(name) {
   tab = name;
@@ -551,7 +737,18 @@ for (const target of [drop, $("view")]) {
 }
 
 // --- fit controls ---
-for (const id of ["scale", "yaw", "offx", "offy", "offz"]) $(id).oninput = refresh;
+for (const id of ["scale", "yaw", "offx", "offy", "offz"]) {
+  $(id).oninput = refresh;
+  // A typed value can go past the slider: the slider widens to take it.
+  $(id + "Out").onchange = $(id + "Out").oninput = () => {
+    const n = parseFloat($(id + "Out").value), slider = $(id);
+    if (!isFinite(n) || (id === "scale" && n <= 0)) return;
+    const v = id === "scale" ? n / 100 : n;
+    if (v < +slider.min) slider.min = v;
+    if (v > +slider.max) slider.max = v;
+    slider.value = v; refresh();
+  };
+}
 document.querySelectorAll("[data-turn]").forEach(b => b.onclick = () => {
   let v = +$("yaw").value + +b.dataset.turn; v = ((v + 180) % 360 + 360) % 360 - 180; $("yaw").value = v; refresh();
 });
@@ -570,7 +767,7 @@ async function doRig(text) {
     const p = result.pose;
     $("rigInfo").textContent = `Rigged in ${result.seconds.toFixed(1)} s. The hero was bent ${p.Arms > 0 ? "arms down" : p.Arms < 0 ? "arms up" : "arms as they are"} (${p.Arms}°)` +
       `${p.Legs ? `, legs ${p.Legs > 0 ? "apart" : "together"} (${p.Legs}°)` : ""} to match. Shown in the hero's bind pose; try the poses below.`;
-    $("bendButtons").hidden = false;
+    $("bendButtons").hidden = false; $("tuning").hidden = false;
     setupAdvanced(result);
     showTool(adv.tool);
   } catch (e) { $("rigInfo").textContent = e.message; }
@@ -589,6 +786,7 @@ function setupAdvanced(result) {
   if (!result.skeleton) { $("advanced").hidden = true; return; }
   const bin = b64 => Uint8Array.from(atob(b64), c => c.charCodeAt(0)).buffer;
   adv.skeleton = result.skeleton;
+  loadClips();
   adv.bones = new Uint16Array(bin(result.bones)); adv.weights = new Float32Array(bin(result.weights));
   adv.pieces = new Uint32Array(bin(result.pieces)); adv.pieceCount = result.pieceCount;
   adv.jointMap = result.jointMap || {}; adv.jointVertices = result.jointVertices || {};
@@ -827,15 +1025,129 @@ function play(name) {
 }
 document.querySelectorAll("[data-anim]").forEach(b => b.onclick = () => play(b.dataset.anim));
 
+// The hero's own clips: the server poses the hero's animation skeleton for each frame (masks and
+// IK included) and sends every bone's matrix; the page skins the model with them.
+const clips = { hero: null, list: [], suggest: {}, base: "" };
+function fillSelect(select, items, value, none) {
+  select.innerHTML = "";
+  if (none) select.add(new Option(none, ""));
+  for (const item of items) select.add(new Option(item, item));
+  select.value = value || "";
+}
+async function loadClips() {
+  const hero = $("hero").value;
+  if (!hero || clips.hero === hero) return;
+  clips.hero = hero; clips.list = []; $("clipPlay").disabled = true;
+  $("clipInfo").textContent = "Reading the hero's clips…";
+  try {
+    const r = await api("clips", { hero });
+    Object.assign(clips, { list: r.clips, suggest: r.suggest, base: r.base });
+    fillSelect($("clipName"), r.clips, r.play);
+    fillSelect($("clipOver"), r.clips, "", "nothing: the clip alone");
+    fillSelect($("clipMask"), r.masks, "", "the whole body");
+    $("clipInfo").textContent = `${r.clips.length} clips in ${r.folder}`;
+    $("clipPlay").disabled = !r.clips.length;
+  } catch (e) { clips.hero = null; $("clipInfo").textContent = e.message; }
+}
+$("clipName").onchange = () => {
+  const mask = clips.suggest[$("clipName").value] || "";
+  $("clipMask").value = mask; $("clipOver").value = mask ? clips.base : "";
+};
+async function playClip() {
+  if (!state.rig || !adv.skeleton) return;
+  stopAnim();
+  busy("Reading the clip…");
+  let r;
+  try {
+    r = await api("clip", { hero: $("hero").value, clip: $("clipName").value, over: $("clipOver").value, mask: $("clipMask").value, ik: $("clipIK").checked });
+  } catch (e) { busy(); $("clipInfo").textContent = e.message; return; }
+  busy();
+  const m = decodeFloats(r.matrices), sk = adv.skeleton, n = sk.names.length, nb = r.bones.length;
+  const at = r.bones.map(b => sk.names.indexOf(b));
+  const invWorld = [];
+  for (let i = 0; i < n; i++) invWorld.push(inverse(sk.world.slice(i * 12, i * 12 + 12)));
+  const identity = [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0];
+  const frames = [];
+  for (let f = 0; f < r.frames; f++) {
+    const skin = new Array(n).fill(null);
+    for (let k = 0; k < nb; k++) {
+      const i = at[k];
+      if (i < 0 || r.parents[k] < 0) continue; // the root stays: the hero moves on the spot
+      skin[i] = mul(Array.from(m.subarray((f * nb + k) * 12, (f * nb + k + 1) * 12)), invWorld[i]);
+    }
+    // Bones of the model the clips do not animate follow their parent.
+    for (let i = 0; i < n; i++) if (!skin[i]) skin[i] = sk.parents[i] >= 0 && skin[sk.parents[i]] ? skin[sk.parents[i]] : identity;
+    frames.push(skin);
+  }
+  const name = "clip:" + $("clipName").value;
+  adv.anim = name;
+  drawModel(new Float32Array(state.rig));
+  for (const mesh of modelGroup.children) mesh.frustumCulled = false;
+  const fps = r.frames > 1 && r.duration > 0 ? (r.frames - 1) / r.duration : 30, start = performance.now();
+  $("clipInfo").textContent = `${$("clipName").value}: ${r.duration.toFixed(2)} s` + ($("clipOver").value ? ` over ${$("clipOver").value}` : "") +
+    ($("clipMask").value ? ` through ${$("clipMask").value}` : "");
+  const frame = now => {
+    if (adv.anim !== name) return;
+    const moved = skinned(frames[Math.floor((now - start) / 1000 * fps) % r.frames]);
+    for (const mesh of modelGroup.children) { const a = mesh.geometry.getAttribute("position"); a.array.set(moved); a.needsUpdate = true; }
+    animFrame = requestAnimationFrame(frame);
+  };
+  animFrame = requestAnimationFrame(frame);
+}
+$("clipPlay").onclick = playClip;
+
+// The rig check: the server skins the rig through the hero's clips and reports what strains.
+const tuneBoxes = { steadyBody: "tuneSteady", noArmIK: "tuneNoArmIK", usualPose: "tuneUsual" };
+async function checkRig() {
+  $("rigCheckInfo").textContent = "Playing the hero's clips on the rig…"; $("rigCheckTable").hidden = true; $("rigSuggestions").innerHTML = "";
+  busy("Checking the rig against the game's clips…");
+  try {
+    const r = await api("rig/check", options());
+    const pct = x => (x * 100).toFixed(x < 0.1 ? 1 : 0) + "%";
+    const t = $("rigCheckTable"); t.innerHTML = "<tr><th>Clip</th><th>Yours</th><th>Hero's</th><th>Most in</th></tr>";
+    for (const row of r.rows) {
+      const tr = document.createElement("tr");
+      const name = row.Clip + (row.Over ? ` over ${row.Over}` : "");
+      for (const text of [name, pct(row.stretched), pct(row.hero.stretched), (row.topBones || []).join(", ")]) {
+        const td = document.createElement("td"); td.textContent = text; tr.append(td);
+      }
+      const extra = row.stretched - row.hero.stretched;
+      if (extra > 0.04) tr.className = "bad"; else if (extra > 0.02) tr.className = "meh";
+      t.append(tr);
+    }
+    t.hidden = false;
+    $("rigCheckInfo").textContent = r.verdict + " The columns give the share of the surface stretched or squashed 1.6 times or more in the clip's worst moment, for your model and for the hero's own body.";
+    for (const s of r.suggestions || []) {
+      const d = document.createElement("div"); d.className = "info suggestion"; d.textContent = s.text;
+      if (s.option && tuneBoxes[s.option]) {
+        const b = document.createElement("button"); b.textContent = "Turn it on and check again";
+        b.onclick = async () => { $(tuneBoxes[s.option]).checked = true; await doRig(); await checkRig(); };
+        d.append(document.createElement("br"), b);
+      }
+      $("rigSuggestions").append(d);
+    }
+  } catch (e) { $("rigCheckInfo").textContent = e.message; }
+  busy();
+}
+$("rigCheck").onclick = checkRig;
+for (const id of Object.values(tuneBoxes)) $(id).onchange = () => { if (state.rig) doRig(); };
+heroHooks.push(() => { clips.hero = null; if (!$("advanced").hidden) loadClips(); });
+
 // --- install ---
 $("install").onclick = async () => {
   busy("Building and installing…");
   try {
     const result = await api("install", options());
     for (const m of result.messages) log(m);
-    log("Installed. Start Deadlock to see it.", "ok");
+    log("Installed. Start Deadlock to see it, or test it in the Hero Sandbox.", "ok");
+    $("playTest").disabled = false;
   } catch (e) { log(e.message, "bad"); }
   busy();
+};
+
+$("playTest").onclick = async () => {
+  try { const r = await api("play", { hero: $("hero").value }); for (const m of r.messages) log(m, "ok"); }
+  catch (e) { log(e.message, "bad"); }
 };
 
 // --- sounds: play and replace a hero's voice lines, ability sounds, footsteps ---
@@ -1162,6 +1474,449 @@ $("fxRestore").onclick = async () => {
 };
 tabHooks.effects = [() => loadFx()];
 heroHooks.push(() => { if (tab === "effects") loadFx(true); });
+
+// --- abilities: each ability as the game will show it with the switched-on mods ---
+const ab = { hero: null, list: [], stamp: 0 };
+const abURL = (route, path, which, extra = "") =>
+  `/api/abilities/${route}?path=${encodeURIComponent(path)}&which=${which}&t=${TOKEN}${extra}&s=${ab.stamp}`;
+function abLabel(text) { const d = document.createElement("div"); d.className = "label"; d.textContent = text; return d; }
+function abFigure(src, caption, cls, mod) {
+  const f = document.createElement("figure");
+  const img = document.createElement("img"); img.className = cls; img.loading = "lazy"; img.src = src; img.alt = caption;
+  img.onerror = () => { img.style.visibility = "hidden"; };
+  const c = document.createElement("figcaption"); c.textContent = caption; c.title = caption;
+  if (mod) c.classList.add("mod");
+  f.append(img, c); return f;
+}
+function abStrip(colors) {
+  const s = document.createElement("div"); s.className = "strip";
+  for (const c of colors) {
+    const d = document.createElement("div"); d.style.background = css(c.color);
+    d.title = `rgb(${c.color.join(", ")}), used ${c.uses} times`; s.append(d);
+  }
+  return s;
+}
+function renderAbilities() {
+  const yaw = +$("abYaw").value; $("abYawOut").textContent = yaw + "°";
+  const list = $("abilityList"); list.innerHTML = "";
+  for (const a of ab.list) {
+    const card = document.createElement("div"); card.className = "card ability";
+    if (a.iconMod || a.recoloured || a.models.some(m => m.mod)) card.classList.add("replaced");
+    const head = document.createElement("div"); head.className = "head";
+    head.innerHTML = `<span class="slot"></span><h3></h3>`;
+    head.querySelector(".slot").textContent = a.slot; head.querySelector("h3").textContent = a.name;
+    card.append(head);
+    for (const [text, cls] of [[a.quip, "quip"], [a.description, ""]]) {
+      if (!text) continue;
+      const p = document.createElement("p"); p.className = cls; p.textContent = text; card.append(p);
+    }
+    if (a.values.length) {
+      const v = document.createElement("div"); v.className = "values";
+      for (const x of a.values) { const s = document.createElement("span"); s.textContent = `${x.label} ${x.value}`; v.append(s); }
+      card.append(v);
+    }
+    if (a.icon) {
+      const row = document.createElement("div"); row.className = "pair";
+      row.append(abFigure(abURL("icon", a.icon, "game"), "game", "icon"));
+      if (a.iconMod) row.append(abFigure(abURL("icon", a.icon, "yours"), a.iconMod, "icon", true));
+      card.append(abLabel(a.iconMod ? "Icon: the game's and the one in game now" : "Icon (the game's own)"), row);
+    }
+    if (a.particles) {
+      card.append(abLabel(`Effects: ${a.particles} particle systems, ` +
+        (a.recoloured ? `${a.recoloured} replaced by ${a.effectMods.join(", ")} (top: game, bottom: in game now)` : "none replaced")));
+      card.append(abStrip(a.before));
+      if (a.recoloured) card.append(abStrip(a.after));
+    }
+    if (a.models.length) {
+      const row = document.createElement("div"); row.className = "pair";
+      for (const m of a.models) {
+        const base = m.path.split("/").pop().replace(/\.vmdl$/, "");
+        row.append(abFigure(abURL("model", m.path, "game", `&yaw=${yaw}`), base, "prop"));
+        if (m.mod) row.append(abFigure(abURL("model", m.path, "yours", `&yaw=${yaw}`), m.mod, "prop", true));
+      }
+      card.append(abLabel("Models it throws or places"), row);
+    }
+    if (a.sounds && a.sounds.length) {
+      const p = document.createElement("p");
+      p.textContent = `Sounds: ${a.sounds.slice(0, 6).join(", ")}${a.sounds.length > 6 ? ` and ${a.sounds.length - 6} more` : ""}`;
+      card.append(p);
+    }
+    list.append(card);
+  }
+  $("abilitiesEmpty").hidden = ab.list.length > 0;
+}
+async function loadAbilities(force) {
+  const hero = $("hero").value;
+  if (!hero) return;
+  if (!force && ab.hero === hero) return renderAbilities();
+  $("abilitiesEmpty").textContent = "Reading the hero's abilities and the mods…"; $("abilitiesEmpty").hidden = false;
+  $("abilityList").innerHTML = "";
+  try {
+    const r = await api("abilities", { hero });
+    ab.hero = hero; ab.list = r.abilities; ab.stamp = Date.now(); $("abNote").textContent = r.note || "";
+    renderAbilities();
+    if (!ab.list.length) { $("abilitiesEmpty").textContent = "dlmod found no abilities for this hero."; $("abilitiesEmpty").hidden = false; }
+  } catch (e) { $("abilitiesEmpty").textContent = e.message; $("abilitiesEmpty").hidden = false; }
+}
+$("abYaw").oninput = () => { $("abYawOut").textContent = $("abYaw").value + "°"; };
+$("abYaw").onchange = () => renderAbilities();
+$("abRefresh").onclick = () => loadAbilities(true);
+tabHooks.abilities = [() => loadAbilities()];
+heroHooks.push(() => { if (tab === "abilities") loadAbilities(true); });
+
+// --- create: describe a character, make it with Meshy step by step, put it on the hero ---
+const cr = { hero: null, view: null, timer: null, edits: {} };
+const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; };
+const crFile = name => `/api/creator/file?t=${TOKEN}&hero=${encodeURIComponent(cr.hero)}&name=${encodeURIComponent(name)}`;
+const crRunning = g => !["SUCCEEDED", "FAILED", "CANCELED"].includes(g.status);
+function crLog(text, kind) { const line = el("div", kind, text); $("crLog").append(line); $("crLog").scrollTop = 1e9; }
+
+// questions
+document.querySelectorAll(".qs .chips").forEach(group => group.querySelectorAll("button").forEach(b => b.onclick = () => {
+  const on = b.classList.contains("on");
+  group.querySelectorAll("button").forEach(x => x.classList.remove("on"));
+  if (!on) b.classList.add("on");
+}));
+const chipValue = q => { const b = document.querySelector(`.qs .chips[data-q="${q}"] button.on`); return b ? (b.dataset.v || b.textContent) : ""; };
+function answers() {
+  return {
+    name: $("qName").value.trim(), what: chipValue("what"), body: chipValue("body"), style: chipValue("style"),
+    colors: $("qColors").checked ? [$("qC1").value, $("qC2").value, $("qC3").value] : [],
+    item: $("qItem").value.trim(), details: $("qDetails").value.trim(),
+    tags: [$("qT1").value, $("qT2").value, $("qT3").value].map(t => t.trim()).filter(Boolean),
+  };
+}
+function fillAnswers(a, concept) {
+  $("qName").value = a.name || ""; $("qItem").value = a.item || ""; $("qDetails").value = a.details || "";
+  for (const q of ["what", "body", "style"]) document.querySelectorAll(`.qs .chips[data-q="${q}"] button`)
+    .forEach(b => b.classList.toggle("on", (b.dataset.v || b.textContent) === a[q]));
+  const colors = a.colors || [];
+  if (colors.length) { $("qC1").value = colors[0]; $("qC2").value = colors[1] || colors[0]; $("qC3").value = colors[2] || colors[0]; }
+  $("qColors").checked = !a.name || colors.length > 0;
+  const tags = a.tags || []; $("qT1").value = tags[0] || ""; $("qT2").value = tags[1] || ""; $("qT3").value = tags[2] || "";
+  $("qConcept").value = concept || "";
+}
+async function saveAnswers(concept) {
+  if (!cr.hero) return;
+  busy("Writing the prompts for " + cr.view.name + "…");
+  try {
+    cr.view = await api("creator/answers", { hero: cr.hero, answers: answers(), concept });
+    $("qConcept").value = cr.view.concept;
+    $("qInfo").textContent = "The prompts below now describe your character.";
+    renderCreator();
+  } catch (e) { $("qInfo").textContent = e.message; }
+  busy();
+}
+$("qSave").onclick = () => saveAnswers("");
+$("qConceptSave").onclick = () => saveAnswers($("qConcept").value.trim());
+
+// Meshy key and credits
+async function showBalance() {
+  try { const r = await api("creator/balance"); $("meshyBalance").innerHTML = `Credits left: <span class="credits">${r.balance}</span>`; }
+  catch (e) { $("meshyBalance").textContent = e.message; }
+}
+function keyBox(hasKey) { $("meshyKeyBox").hidden = hasKey; if (hasKey) showBalance(); else $("meshyBalance").textContent = ""; }
+$("meshyKeySave").onclick = async () => {
+  busy("Checking the key with Meshy…");
+  try {
+    const r = await api("creator/key", { key: $("meshyKey").value });
+    $("meshyKey").value = ""; cr.view && (cr.view.hasKey = true); keyBox(true);
+    $("meshyBalance").innerHTML = `Credits left: <span class="credits">${r.balance}</span>`; renderCreator();
+  } catch (e) { $("meshyBalance").textContent = e.message; }
+  busy();
+};
+
+// steps
+function stepTitle(id) { return { design_sheet: "design sheet", turnaround: "set of views", model: "3D model" }[id] || id; }
+// Reference pictures: the design sheet is drawn from them, and every picture with "use them for
+// every picture".
+function renderRefs() {
+  const v = cr.view, list = $("refList"); list.innerHTML = "";
+  if (!v) return;
+  for (const name of v.refs || []) {
+    const item = el("div", "ref");
+    const img = el("img"); img.src = `/api/creator/ref?hero=${encodeURIComponent(cr.hero)}&name=${encodeURIComponent(name)}&t=${TOKEN}`;
+    const remove = el("button", "", "×"); remove.title = "Remove this picture";
+    remove.onclick = async () => {
+      try { cr.view = { ...cr.view, ...(await api("creator/refs/remove", { hero: cr.hero, ref: name })) }; renderCreator(); }
+      catch (e) { $("qInfo").textContent = e.message; }
+    };
+    item.append(img, remove); list.append(item);
+  }
+  $("refAll").checked = !!v.refsForAll;
+  $("refDrop").classList.toggle("full", (v.refs || []).length >= 4);
+}
+async function addRefs(files) {
+  if (!cr.hero || !files.length) return;
+  const form = new FormData(); form.append("hero", cr.hero);
+  for (const f of files) form.append("file", f, f.name);
+  busy("Adding the reference pictures…");
+  try { cr.view = { ...cr.view, ...(await api("creator/refs/add", form, true)) }; renderCreator(); $("qInfo").textContent = ""; }
+  catch (e) { $("qInfo").textContent = e.message; }
+  busy();
+}
+$("refDrop").onclick = () => $("refFile").click();
+$("refFile").onchange = () => { const files = [...$("refFile").files]; $("refFile").value = ""; addRefs(files); };
+$("refDrop").ondragover = e => { e.preventDefault(); e.stopPropagation(); };
+$("refDrop").ondrop = e => { e.preventDefault(); e.stopPropagation(); addRefs([...e.dataTransfer.files]); };
+$("refAll").onchange = async () => {
+  try { cr.view = { ...cr.view, ...(await api("creator/refs/options", { hero: cr.hero, forAll: $("refAll").checked })) }; renderCreator(); }
+  catch (e) { $("qInfo").textContent = e.message; }
+};
+function renderCreator() {
+  const v = cr.view;
+  $("createEmpty").hidden = !!v; $("createSteps").hidden = !v;
+  renderRefs();
+  if (!v) return;
+  $("crFolder").textContent = "Saved in " + v.folder;
+  const groups = { character: $("stepsCharacter"), model: $("stepsModel"), pictures: $("stepsPictures"), props: $("stepsProps") };
+  $("propsGroup").hidden = !v.steps.some(s => s.group === "props");
+  for (const g of Object.values(groups)) g.innerHTML = "";
+  for (const st of v.steps) groups[st.group].append(stepCard(st));
+  updateCreator();
+}
+function stepCard(st) {
+  const card = el("div", "gen"); card.dataset.step = st.id;
+  const head = el("header"); head.append(el("h3", "", st.title));
+  if (st.optional) head.append(el("small", "", "optional"));
+  if (st.size) head.append(el("small", "", st.size + (st.target ? " · " + st.target.split("/").pop() : "")));
+  card.append(head);
+  const edit = cr.edits[st.id] || (cr.edits[st.id] = {});
+  const controls = el("div", "controls");
+  const select = el("select");
+  for (const [m, price] of Object.entries(st.models)) select.add(new Option(`${m} · ${price} credits`, m));
+  select.value = edit.model || st.default;
+  select.onchange = () => { edit.model = select.value; updateCreator(); };
+  const go = el("button", "go");
+  go.onclick = () => runStep(st, select.value);
+  controls.append(select, go);
+  card.append(controls);
+  if (st.prompt) {
+    const details = el("details"); details.append(el("summary", "", "Prompt"));
+    const text = el("textarea"); text.value = edit.prompt !== undefined ? edit.prompt : st.filled;
+    text.oninput = () => edit.prompt = text.value;
+    details.append(text); card.append(details);
+  }
+  if (st.note) card.append(el("div", "note2", st.note));
+  card.append(el("div", "lock"));
+  card.append(el("div", "results"));
+  return card;
+}
+function genTile(g, kept, st) {
+  const tile = el("div", "result" + (g.status === "SUCCEEDED" ? " done" : "") + (kept ? " kept" : "") + (["FAILED", "CANCELED"].includes(g.status) ? " failed" : ""));
+  if (kept) tile.append(el("span", "badge", "Kept"));
+  if (g.status === "SUCCEEDED") {
+    const imgs = el("div", "imgs");
+    const pics = g.thumb ? [g.thumb] : g.files.filter(f => f.endsWith(".png"));
+    for (const f of pics) { const img = el("img"); img.src = crFile(f); img.loading = "lazy"; imgs.append(img); }
+    if (!pics.length) imgs.append(el("div", "wait", "3D model ready"));
+    tile.append(imgs);
+    tile.append(el("div", "meta", `${g.model} · ${g.credits} credits` + (g.editOf ? " · edited" : "") + (kept ? "" : " · click to keep")));
+    if (!kept) tile.onclick = () => chooseGen(g);
+    if (st && crEditable(st)) {
+      const edit = el("button", "edit", "Edit…");
+      edit.onclick = e => { e.stopPropagation(); editGen(st, g); };
+      tile.append(edit);
+    }
+  } else if (crRunning(g)) {
+    const queued = g.status === "PENDING" || g.progress === 0;
+    tile.append(el("div", "wait", queued ? (g.queue ? `In Meshy's queue · ${g.queue} ahead` : "Starting…") : `Making it… ${g.progress}%`));
+    const bar = el("div", "bar" + (queued ? " queue" : "")); const fill = el("i"); if (!queued) fill.style.width = g.progress + "%";
+    bar.append(fill); tile.append(bar);
+  } else tile.append(el("div", "meta", g.error || g.status));
+  return tile;
+}
+// updateCreator refreshes what changes while generations run, keeping the prompts being edited.
+function updateCreator() {
+  const v = cr.view; if (!v) return;
+  const ready = v.ready || {};
+  for (const st of v.steps) {
+    const card = document.querySelector(`.gen[data-step="${st.id}"]`); if (!card) continue;
+    const isReady = ready[st.id] !== undefined ? ready[st.id] : st.ready;
+    const gens = (v.generations || []).filter(g => g.step === st.id).reverse();
+    const busyNow = gens.some(crRunning);
+    const model = (cr.edits[st.id] || {}).model || st.default;
+    const go = card.querySelector("button.go");
+    go.textContent = (gens.length ? "Make another" : "Generate") + ` · ${st.models[model]} credits`;
+    go.disabled = !isReady || !v.hasKey || !v.concept || busyNow;
+    card.classList.toggle("locked", !isReady);
+    card.querySelector(".lock").textContent = !v.concept ? "Describe your character first." : !isReady ? `Keep a ${stepTitle(st.needs)} first.` :
+      !v.hasKey ? "Add your Meshy key on the left." : "";
+    const results = card.querySelector(".results"); results.innerHTML = "";
+    for (const g of gens) results.append(genTile(g, v.chosen[st.id] === g.id, st));
+  }
+  const kept = id => { const g = v.generations.find(x => x.id === v.chosen[id]); return g && g.status === "SUCCEEDED"; };
+  const pictures = v.steps.filter(s => s.group === "pictures");
+  const keptPictures = pictures.filter(s => kept(s.id)).length;
+  const marks = [["Describe", !!v.concept], ["Design sheet", kept("design_sheet")], ["Views", kept("turnaround")],
+    ["3D model", kept("model")], ["Rig", kept("rig")], [`Pictures ${keptPictures}/${pictures.length}`, keptPictures === pictures.length]];
+  const props = v.steps.filter(s => s.group === "props" && s.id.startsWith("prop_"));
+  const keptProps = props.filter(s => kept(s.id)).length;
+  if (props.length) marks.push([`Ability models ${keptProps}/${props.length}`, keptProps === props.length]);
+  $("stepper").innerHTML = "";
+  let current = false;
+  for (const [label, done] of marks) {
+    const chip = el("span", done ? "done" : !current ? "now" : "", (done ? "✓ " : "") + label);
+    if (!done) current = true;
+    $("stepper").append(chip);
+  }
+  $("crImport").disabled = !(kept("model") || kept("rig"));
+  $("crInstall").disabled = keptPictures === 0 && keptProps === 0;
+  const batch = crBatch(), batchCost = batch.reduce((sum, i) => sum + i.price, 0);
+  $("crBatch").disabled = !batch.length || !v.hasKey;
+  $("crBatch").textContent = batch.length ? `Make every ready picture · ${batch.length} steps · ${batchCost} credits` : "Make every ready picture";
+}
+async function runStep(st, model) {
+  const price = st.models[model];
+  if (!confirm(`${st.title} with ${model} costs ${price} Meshy credits. Generate it?`)) return;
+  const edit = cr.edits[st.id] || {};
+  try {
+    cr.view = { ...cr.view, ...(await api("creator/run", { hero: cr.hero, step: st.id, model, prompt: st.prompt ? (edit.prompt ?? st.filled) : "", confirm: true })) };
+    updateCreator(); pollCreator();
+    setTimeout(showBalance, 4000);
+  } catch (e) { const card = document.querySelector(`.gen[data-step="${st.id}"]`); if (card) card.querySelector(".lock").textContent = e.message; }
+}
+// An edit changes one finished picture as asked; the new picture is kept in its place.
+const crEditable = st => !["turnaround", "model", "rig"].includes(st.id) && !st.id.startsWith("prop_");
+async function editGen(st, g) {
+  const what = prompt(`What should change in this picture? For example: "make the cape red", "no hat".`);
+  if (!what || !what.trim()) return;
+  const price = g.model.startsWith("gpt-image") ? 12 : st.models[g.model];
+  if (!confirm(`Editing it with ${g.model} costs ${price} Meshy credits. Go?`)) return;
+  try {
+    cr.view = { ...cr.view, ...(await api("creator/run", { hero: cr.hero, step: st.id, model: g.model, edit: g.id, prompt: what.trim(), confirm: true })) };
+    updateCreator(); pollCreator(); setTimeout(showBalance, 4000);
+  } catch (e) { const card = document.querySelector(`.gen[data-step="${st.id}"]`); if (card) card.querySelector(".lock").textContent = e.message; }
+}
+// The batch: every picture step that can run now and has nothing kept or running, with the model
+// picked on its card.
+function crBatch() {
+  const v = cr.view; if (!v) return [];
+  const ready = v.ready || {};
+  return v.steps.filter(st => (st.group === "pictures" || st.group === "props") &&
+    (ready[st.id] !== undefined ? ready[st.id] : st.ready) && !v.chosen[st.id] &&
+    !(v.generations || []).some(g => g.step === st.id && crRunning(g)))
+    .map(st => { const model = (cr.edits[st.id] || {}).model || st.default; return { st, model, price: st.models[model] }; });
+}
+async function runBatch() {
+  const items = crBatch(), total = items.reduce((sum, i) => sum + i.price, 0);
+  if (!items.length || !confirm(`Make ${items.length} pictures and models at once for ${total} Meshy credits? Meshy works on them side by side.`)) return;
+  try {
+    const r = await api("creator/batch", { hero: cr.hero, confirm: true, total, steps: items.map(i => ({ step: i.st.id, model: i.model })) });
+    cr.view = { ...cr.view, ...r };
+    crLog(`Started ${r.started.length} of ${items.length}: ${r.started.join(", ") || "none"}.` + (r.problems && r.problems.length ? " " + r.problems.join("; ") : ""), r.problems && r.problems.length ? "bad" : "ok");
+    updateCreator(); pollCreator(); setTimeout(showBalance, 4000);
+  } catch (e) { crLog(e.message, "bad"); }
+}
+async function chooseGen(g) {
+  try { cr.view = { ...cr.view, ...(await api("creator/choose", { hero: cr.hero, gen: g.id })) }; updateCreator(); }
+  catch (e) { crLog(e.message, "bad"); }
+}
+async function pollCreator() {
+  clearTimeout(cr.timer);
+  if (!cr.view || !(cr.view.generations || []).some(crRunning)) return;
+  try {
+    const r = await api("creator/poll", { hero: cr.hero });
+    const finished = cr.view.generations.filter(crRunning).length > r.generations.filter(crRunning).length;
+    Object.assign(cr.view, { generations: r.generations, chosen: r.chosen, ready: r.ready });
+    updateCreator();
+    if (finished) showBalance();
+  } catch (e) { /* try again */ }
+  cr.timer = setTimeout(pollCreator, 1500);
+}
+async function loadCreator() {
+  const hero = $("hero").value;
+  if (!hero) { cr.view = null; renderCreator(); return; }
+  if (cr.hero === hero && cr.view) return;
+  $("createEmpty").textContent = "Reading " + $("hero").selectedOptions[0].text + " from the game…"; $("createEmpty").hidden = false;
+  try {
+    cr.view = await api("creator/state", { hero }); cr.hero = hero; cr.edits = {};
+    fillAnswers(cr.view.answers, cr.view.concept); keyBox(cr.view.hasKey); renderCreator(); pollCreator(); loadPacks();
+  } catch (e) { $("createEmpty").textContent = e.message; }
+}
+
+// Characters for this hero: packs saved beside the one being made.
+function renderPacks(packs) {
+  const list = $("crPacks"); list.innerHTML = "";
+  for (const p of packs || []) {
+    const row = el("div", "pack-row");
+    row.append(el("span", "", p.name), el("small", "", new Date(p.created).toLocaleDateString() + " · " + (p.size / 1048576).toFixed(1) + " MB"));
+    const open = el("button", "", "Open");
+    open.onclick = () => openPack(p);
+    row.append(open); list.append(row);
+  }
+  if (!(packs || []).length) list.append(el("div", "info", "No saved characters yet."));
+}
+async function loadPacks() {
+  if (!cr.hero) return;
+  try { renderPacks((await api("creator/packs", { hero: cr.hero })).packs); } catch (e) { crLog(e.message, "bad"); }
+}
+function showOpened(r) {
+  cr.view = r; cr.edits = {};
+  fillAnswers(r.answers, r.concept); renderCreator(); renderPacks(r.packs); pollCreator();
+  crLog(`Opened ${r.opened}.` + (r.savedFirst && r.savedFirst !== "." ? ` The character that was open is saved as ${r.savedFirst}.` : ""), "ok");
+}
+async function openPack(p) {
+  if (!confirm(`Switch to ${p.name}? The character open now is saved first.`)) return;
+  busy("Opening " + p.name + "…");
+  try { showOpened(await api("creator/pack/open", { hero: cr.hero, pack: p.file })); } catch (e) { crLog(e.message, "bad"); }
+  busy();
+}
+$("crPackSave").onclick = async () => {
+  try { const r = await api("creator/pack/save", { hero: cr.hero }); renderPacks(r.packs); crLog(`Saved ${r.name} as ${r.saved}.`, "ok"); }
+  catch (e) { crLog(e.message, "bad"); }
+};
+$("crPackDownload").onclick = async () => {
+  try {
+    const q = `hero=${encodeURIComponent(cr.hero)}&t=${TOKEN}`;
+    const name = await (await fetch(`/api/creator/pack/name?${q}`)).json();
+    if (name.error) throw new Error(name.error);
+    const response = await fetch(`/api/creator/pack/download?${q}`);
+    if (!response.ok) throw new Error((await response.json()).error);
+    const a = document.createElement("a"); a.href = URL.createObjectURL(await response.blob()); a.download = name.file; a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 10000);
+  } catch (e) { crLog(e.message, "bad"); }
+};
+$("crPackOpen").onclick = () => $("crPackFile").click();
+$("crPackFile").onchange = async () => {
+  const file = $("crPackFile").files[0]; $("crPackFile").value = "";
+  if (!file || !confirm(`Open ${file.name}? The character open now for its hero is saved first.`)) return;
+  const form = new FormData(); form.append("file", file, file.name);
+  busy("Opening " + file.name + "…");
+  try {
+    const r = await api("creator/pack/upload", form, true);
+    if (r.hero !== $("hero").value) { cr.hero = null; cr.view = null; $("hero").value = r.hero; $("hero").dispatchEvent(new Event("change")); }
+    else showOpened(r);
+  } catch (e) { crLog(e.message, "bad"); }
+  busy();
+};
+$("crImport").onclick = async () => {
+  busy("Loading your 3D model…");
+  try {
+    const model = await api("creator/import", { hero: cr.hero });
+    showModel(model); showTab("model"); $("empty").hidden = true;
+    busy(); await doRig("Rigging " + (cr.view.answers.name || "your character") + " on " + cr.view.name + "…");
+    if (!$("advanced").hidden) { // play the hero's own run, or the made-up walk without clips
+      await loadClips();
+      if (clips.list.length) await playClip(); else document.querySelector('[data-anim="walk"]').click();
+    }
+    log("Your character is rigged on " + cr.view.name + ". Check the poses, then install it.", "ok");
+  } catch (e) { crLog(e.message, "bad"); }
+  busy();
+};
+$("crBatch").onclick = runBatch;
+$("crInstall").onclick = async () => {
+  busy("Installing the hero select screen, cards, icons and ability models…");
+  try { const r = await api("creator/install", { hero: cr.hero, effects: $("crEffects").checked, scene: $("crFrame").checked ? "frame" : "" }); for (const m of r.messages) crLog(m, "ok"); }
+  catch (e) { crLog(e.message, "bad"); }
+  busy();
+};
+tabHooks.create = [() => loadCreator()];
+heroHooks.push(() => { cr.view = null; cr.hero = null; if (tab === "create") loadCreator(); });
+// dlmod built without Meshy has no creator: hide the tab. Otherwise open on it unless a model
+// was dropped on dlmod.
+api("creator/list").then(r => { keyBox(r.hasKey); return api("current"); }).then(m => { if (!m.name) showTab("create"); })
+  .catch(() => { $("createTabButton").hidden = true; });
 </script>
 </body>
 </html>

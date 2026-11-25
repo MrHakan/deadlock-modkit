@@ -339,6 +339,15 @@
     "modelFolder": "models/heroes_wip/deadpack/",
     "height": 136.79527854919434,
     "skeleton": "models/heroes_wip/deadpack/deadpack.vnmskel",
+    "clipFolder": "models/heroes_wip/deadpack/clips/",
+    "clips": 259,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "melee_UpperBody",
       "Reload_Idle",
@@ -475,6 +484,6 @@
       "Citadel_Deadpack_HeroTag_2",
       "Citadel_Deadpack_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

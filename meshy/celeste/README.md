@@ -25,6 +25,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 | --- | --- | --- |
 | Model | `models/heroes_wip/unicorn/unicorn.vmdl` | 117 units tall |
 | Animation skeleton | `models/heroes_wip/unicorn/unicorn.vnmskel` | |
+| Animation clips | `models/heroes_wip/unicorn/clips/` | 225 clips |
 | Hero card (hero select, HUD) | `panorama/images/heroes/unicorn_card_psd.vtex_c` | 280x380 |
 | Card at low health | `panorama/images/heroes/unicorn_card_critical_psd.vtex_c` | 280x380 |
 | Card after a kill | `panorama/images/heroes/unicorn_card_gloat_psd.vtex_c` | 280x380 |
@@ -46,8 +47,9 @@ Set the character's description (`concept`), the name and tags shown on the hero
 
 ## Animations
 
-The game plays Celeste's own 0 clips on whatever model is installed, so a replacement is rigged to Celeste's bones rather than given new animations. What the game does to those clips matters:
+The game plays Celeste's own 225 clips on whatever model is installed, so a replacement is rigged to Celeste's bones rather than given new animations. What the game does to those clips matters:
 
+- Clips worth checking a rig against: `out_of_combat_idle`, `weapon_run_n`, `weapon_crouch_idle`, `melee_quick_1`, `melee_hit`.
 - Melee, reloads and casts are laid over the movement through bone masks (`Cast_UpperBody`, `FullBody`, `melee_dash`, `melee_UpperBody`, `Parry_UpperBody`, `Reload_Crouch`, `Reload_Haspath`, `Reload_HasPathCrouch`, `Reload_Idle`, `Reload_InAir`, `Reload_Slide`, `Reload_Zoomed`, `root`, `shoot_crouch`, `shoot_haspath`, `shoot_Idle`, `shoot_inair`, `shoot_slide`, `shoot_turn`, `Throw_UpperBody`, `Turn_LowerBody`, `UpperBodyReplace_AirDash`, `UpperBodyReplace_Asleep`, `UpperBodyReplace_Asleep_Channeling`, `UpperBodyReplace_GroundDash`, `UpperBodyReplace_InAir`, `UpperBodyReplace_Shopping`, `UpperBodyReplace_Slide`, `UpperBodyReplace_Turn`, `zero`, `luminous_hasPath`, `orb_hasPath`, `Prismatic_hasPath`, `Reload_Idle_ALT`, `Ability_RadiantBlast_Turn`, `shoot_dash_air`, `Reload_Crouch_ALT`, `Reload_HasPathCrouch_ALT`, `Reload_InAir_ALT`, `Baton`, `Reload_HasPath_ALT`, `Reload_Slide_ALT`, `Ability_Radiantblast_dash`, `Ability_Radiantblast_inair`, `Reload_Additive`, `Dash_Air_Hand`, `Prismatic_InAir`): only the upper body takes the clip, so a fit to the whole clip is wrong in game.
 - The hero graph solves both arms by IK towards the gun (`weaponHand_L`, `weaponHand_R`) and the legs towards `leg_*_IKTARGET`, so the arm bones in game are not what the clips say. Body parts that should follow the hero safely use `head`, `neck_0`, the spine, the clavicles, `pelvis` and the leg IK targets.
 - `attachWorld` never moves: weight on it keeps a part steady. `root_motion` is the character's place; its rest pose in the file is turned, which dlmod corrects.

@@ -499,6 +499,6 @@
       "Citadel_Kelvin_HeroTag_2",
       "Citadel_Kelvin_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

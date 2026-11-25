@@ -16,14 +16,56 @@ flowchart LR
 | Piece | Where you see it | Command | Mod it goes into |
 | --- | --- | --- | --- |
 | 3D model | Everywhere in a match | `dlmod model haze model.glb`, or the model studio | *Custom model: Haze* |
-| Hero select screen | Picking a hero: the big picture, name, three tags | `dlmod select haze bg=art.png name=SHADE tags=Sneaky,Swift,Deadly colors=#7A3CFF,#FFB020 scene=hide` | *Hero select* (name and tags: *Custom text*) |
+| Hero select screen | Picking a hero: the big picture, name, three tags | `dlmod select haze bg=art.png name=SHADE tags=Sneaky,Swift,Deadly colors=#7A3CFF,#FFB020 scene=hide` (or `scene=frame` to show your installed 3D model in front of the picture) | *Hero select* (name and tags: *Custom text*) |
 | Cards and portraits | Hero select grid, scoreboard, HUD, minimap | `dlmod image panorama/images/heroes/haze_card_psd.vtex_c card.png` | *Custom images* |
 | Ability icons | The ability bar | `dlmod icons haze 1=dagger.png` | *Custom images* |
 | Ability models | Thrown bombs, placed traps, statues | `dlmod prop models/abilities/ivy_thornbomb_model.vmdl bomb.glb` | *Custom prop: …* |
-| Ability effects | Particles, glows, trails | `dlmod paint haze` or `dlmod effects haze #7A3CFF` | *Custom effects* |
+| Ability effects | Particles, glows, trails | `dlmod paint haze #7A3CFF,#FFB020,#FFFFFF` (or a named palette) or `dlmod effects haze #7A3CFF` | *Custom effects* |
 | Wording | Hero name and any line of hero text | `dlmod text hero_haze:n=Shade` | *Custom text* |
 
 Each kind of piece goes into one mod, which dlmod rebuilds after every change, so switching a piece off or back on is one line in `dlmod list`. `dlmod select haze restore` and `dlmod effects haze restore` undo theirs.
+
+## The character creator
+
+The studio's **Create** tab (`dlmod studio`) does the whole thing from one page, with [Meshy](https://www.meshy.ai) doing the drawing and modelling:
+
+1. **Meshy key.** Paste your API key from meshy.ai → Settings → API once. It stays in `game/dlmod/meshy/key` and is sent only to Meshy (or set `MESHY_API_KEY`).
+2. **Describe your character.** Answer a few questions: its name, what it is (human, creature, robot, alien…), its body (arms and legs, round with no legs, four legs), its style, three colours, what it holds, anything else, and its three tags. dlmod writes the prompts for the picked hero from your answers and the hero's role, weapon and abilities; the description they use can be edited freely. You can also add up to four pictures of your own (a sketch, concept art, a photo of a figure): the design sheet is then drawn from them (Meshy image-to-image), and with *Use them for every picture* each later picture gets them too, after the design sheet. They are kept in the character's `refs/` folder and go into its pack.
+3. **Make it, step by step.** Each step shows its price and asks before spending credits: the design sheet, then views from the front, side and back, then the 3D model (several views with `meshy-7.1`, or the front view with smart topology), then an optional Meshy rig for characters with arms and legs. While Meshy works, each result shows its place in Meshy's queue and a progress bar; finished pictures appear on the page. The first result of a step is kept; click another to keep that one instead, or make another. *Make every ready picture* starts every picture and ability model that can be made now in one go, after one confirmation of the total price, and Meshy works on them side by side. *Edit…* on any finished picture asks what to change ("make the cape red") and makes a new picture from it, kept in place of the old one.
+4. **Rig it on the hero.** *Open the model on the Model tab* loads the kept model, fits it to the hero and rigs it on the hero's bones right away, then plays the walk so you can check it. *Install on hero* puts it in the game.
+5. **Pictures and ability models.** The hero select art, the cards and portraits and one icon per ability are made from the design sheet the same way. Each model an ability throws or places (a bomb, a trap, a statue) takes two steps: a picture of the object alone, drawn from the design sheet, then a small 3D model of that picture with smart topology (`meshy-t2.5`, 15 credits). *Install in the game* installs the kept ones with your name, tags and colours: the hero select screen (with the 3D scene hidden), or with your installed 3D model in front of the picture when *Show my 3D model on the hero select screen* is ticked, the cards (Meshy removes their background), the icons (as white glyphs) and the ability models in place of the game's. With *Recolour the hero's ability effects with my three colours* ticked, it also repaints the hero's ability effects in your colours (`dlmod paint <hero> #main,#accent,#glow`).
+
+
+Everything is saved in `game/dlmod/characters/<hero>`: the answers, every result, and the hero's workspace files, so closing dlmod loses nothing and `dlmod apply` can install the same folder.
+
+**Several characters per hero.** *Characters for this hero* keeps the character being made beside others for the same hero: *Save this character* stores it as a pack, *Open* switches to another one (the one open is saved first, so nothing is lost), *Download as a pack* gives one file to share, and *Open a pack file…* takes one in. A pack, `<name>-<hero>.dlmodchar`, is a ZIP of the workspace, its kept pictures and models and the creator's answers; the kept results that `assets/` already holds go in once. Without the studio:
+
+```powershell
+dlmod pack haze                 # the creator's character for Haze, as rook-haze.dlmodchar
+dlmod pack meshy/haze rook.dlmodchar
+dlmod unpack rook-haze.dlmodchar   # make it Haze's character in the creator
+dlmod apply rook-haze.dlmodchar    # install it (dropping it on dlmod.exe does too)
+```
+
+dlmod unpacks only a pack's own files (the workspace, `assets/` and `gen/`), never paths outside its folder.
+
+dlmod built with `go build -tags nomeshy` leaves the creator out; the Create tab then does not appear. The creator is meant to become a separate download later.
+
+## Checking abilities without the game
+
+The studio's **Abilities** tab shows the picked hero's four abilities the way the game will show them with the mods that are switched on, so a change can be checked without starting Deadlock:
+
+- the ability's name, line and description, and its values (cast range, duration, radius…) from the game's data;
+- its icon, the game's own next to the one in game now, with the mod it comes from;
+- the colours of its particle effects, before and after, when a mod such as *Custom effects* replaces them;
+- the models it throws or places, drawn from any side, next to the model a *Custom prop* mod puts in their place;
+- the sound events it plays.
+
+dlmod reads the installed mods the way the game does: when two switched-on mods replace one file, the one in the lower slot wins. *Read the mods again* refreshes the tab after installing or switching mods. Values an ability takes from its base class, such as some cooldowns, are not listed.
+
+## Trying it in the game
+
+`dlmod play haze` (or *Test in the game* after installing in the model studio) starts Deadlock straight in the Hero Sandbox as Haze, with the mods loaded. dlmod writes `game/citadel/cfg/dlmod_test.cfg`, which turns on the sandbox's testing tools (`citadel_hero_testing_enabled`) and picks the hero (`selecthero hero_haze`), and starts the game through Steam with `+map new_player_basics +exec dlmod_test`; Steam asks before it uses launch options. If you are not playing the hero once you are in, open the console (F7) and type `exec dlmod_test`.
 
 ## The Meshy workspace
 
@@ -41,7 +83,7 @@ dlmod apply meshy/haze
 
 The first line fills the description into the prompts. After generating, the second installs every file that is in `assets/`: the model, the hero select screen, the cards (a flat green background is keyed out), the icons (turned into white glyphs) and the ability models. `dlmod meshy all meshy` writes every hero's folder again from the installed game, after a game update for example.
 
-The abilities' slots and icons come from [`tools/dlmod/hero_abilities.go`](../tools/dlmod/hero_abilities.go), generated with `go run ./internal/genabilities <build>` from deadlock-api's copy of the game data, because the game keeps them in a compressed file dlmod does not read.
+The abilities' slots, icons and models come from the game's own `scripts/heroes.vdata` and `scripts/abilities.vdata`, which dlmod decodes (they are KeyValues3 compressed with Zstandard). If those cannot be read, for example after the game changes their layout, [`tools/dlmod/hero_abilities.go`](../tools/dlmod/hero_abilities.go) still has them for build 6864, generated with `go run ./internal/genabilities <build>` from deadlock-api's copy of the game data.
 
 ## The model studio
 
@@ -49,10 +91,18 @@ Drop a `.glb`, `.gltf` or `.obj` file onto `dlmod.exe`, or run `dlmod studio`. T
 
 1. **Hero**: pick the hero the model replaces. dlmod reads the hero's model from the game.
 2. **Model**: drop the model with its textures (`.png` or `.jpg`), `.mtl` or `.bin` files, or a `.zip` of them. The preview shows it over the hero.
-3. **Fit**: the model is scaled to the hero's height and stands on the hero's spot. Size, turn and offset sliders adjust it; *Z is up* is for `.obj` files exported Z-up.
+3. **Fit**: the model is scaled to the hero's height and stands on the hero's spot. Size (10 to 300% of the hero's height), turn and offset sliders (150 game units each way) adjust it, and the box beside each takes any value, past the slider too; *Z is up* is for `.obj` files exported Z-up.
 4. **Hero parts**: ticked parts stay (the gun by default); the rest are replaced.
-5. **Rig**: *Rig and check* gives every vertex the hero's bones; *Arms up*, *Arms down* and *Legs apart* bend the result to check it.
+5. **Rig**: *Rig and check* gives every vertex the hero's bones; *Arms up*, *Arms down* and *Legs apart* bend the result to check it. Under *Advanced rig*, *Play the game's clip* plays any of the hero's own animation clips on your model. Melee, reloads and casts are laid over a movement clip through the bone mask the game uses for them (picked by the clip's name, and changeable), and the arms reach for the gun and the feet for the ground by two-bone IK, as the hero graph does. The game blends more layers than this, so the preview is close rather than exact.
 6. **Install**: builds the mod *Custom model: <hero>* and installs it. Importing again replaces it.
+
+**Checking the rig against the game.** After rigging, *Check against the game's clips* plays the hero's run, idle, a melee and a reload laid over the movement, a cast and a jump on your model, the way the game plays them, and measures how much of its surface stretches or squashes to 1.6 times its length or more. Each clip shows your model next to the hero's own body, which strains a little too, so only what your rig adds counts. It also tells when parts sink into the ground or swing behind the hero, where the third-person camera sits. Three tuning options answer what the game does to a hero's bones:
+
+- **Steady body**: the body follows the hips only, not the spine's lean and twist. For a round or rigid body; a humanoid body usually needs its spine.
+- **Arms without IK**: the arms follow the shoulders instead of being pulled to the gun every frame. For arms that hold something else, or none.
+- **Bind the body in the usual pose**: the hero leans while moving (Haze by 40°); a model made standing upright is bound in that lean, so it stays upright in play.
+
+The check tries the first two options on your model and suggests one only when it lowers the stretching, with the numbers; the third it suggests when the hero leans more than 12°.
 
 ![The model studio with Haze's model, exported as .obj with its PNG textures, fitted over Wraith (shown as a ghost)](images/model-studio.png)
 
@@ -60,7 +110,7 @@ Drop a `.glb`, `.gltf` or `.obj` file onto `dlmod.exe`, or run `dlmod studio`. T
 
 ![The rig check: Haze's model with its arms lifted by Wraith's skeleton](images/model-studio-rig.png)
 
-Without the browser: `dlmod model wraith model.glb`, with `-keep gun,cards` (parts to keep), `-scale 1.05`, `-yaw 90` or `-zup`. `-keep none` drops the hero's own gun, and `-move muzzle_flash=X,Y,Z` moves where shots and muzzle flashes start, for a character that holds something else.
+Without the browser: `dlmod model wraith model.glb`, with `-keep gun,cards` (parts to keep), `-scale 1.05`, `-yaw 90` or `-zup`. `-keep none` drops the hero's own gun, and `-move muzzle_flash=X,Y,Z` moves where shots and muzzle flashes start, for a character that holds something else. `-steady`, `-no-arm-ik` and `-usual-pose` are the rig tuning options below.
 
 How it works:
 
@@ -76,7 +126,7 @@ Making a character that is nothing like the hero it replaces taught us how the g
 
 **Animations**
 
-- **Any model plays the hero's clips.** The game never asks what the model looks like: it plays the hero's own animation clips (Ivy has 188) on the hero's skeleton, and the model follows the bones it is weighted to. dlmod reads these clips (AnimGraph2 `.vnmclip`) to test a rig against the poses the game really plays.
+- **Any model plays the hero's clips.** The game never asks what the model looks like: it plays the hero's own animation clips (Ivy has 160) on the hero's skeleton, and the model follows the bones it is weighted to. dlmod reads these clips (AnimGraph2 `.vnmclip`) to test a rig against the poses the game really plays.
 - **Melee and reloads are only half the body.** They are laid over the walking or standing pose through bone masks stored in the skeleton (`melee_UpperBody` gives the arms and head the melee clip fully and the spine 5%, 36% and 70% of it; the hips and legs keep walking). A rig checked against the whole melee clip moves differently in game.
 - **Arms and legs are solved by IK.** Every frame the hero graph pulls both hands to the gun (`weaponHand_L`, `weaponHand_R`) and the feet to their targets (`leg_*_IKTARGET`), so arm bones in game are not where the clips put them. Parts that must follow the hero reliably use the head, neck, spine, clavicles, pelvis and the leg targets.
 - **Some bones never move.** `attachWorld` stays put and is a steady anchor. `root_motion` is the character's place on the ground, but its rest pose in the model file is turned on its side, so vertices weighted to it lie down unless they are turned back, which dlmod does.
@@ -89,7 +139,7 @@ Making a character that is nothing like the hero it replaces taught us how the g
 
 **Hero select screen**
 
-- The big hero on the hero select screen is a live 3D scene: a small map per hero, `maps/ui/hero_prefabs/<hero>.vpk`, with the hero model, props, lights and a camera. Mods ship it as a file inside their VPK. `scene=hide` shrinks its props and world meshes away so the background picture shows on its own.
+- The big hero on the hero select screen is a live 3D scene: a small map per hero, `maps/ui/hero_prefabs/<hero>.vpk`, with the hero model, props, lights and a camera. Mods ship it as a file inside their VPK. `scene=hide` shrinks its props and world meshes away so the background picture shows on its own. The hero in it is a prop called `hero_root` that shows the hero's own model file (Yamato's and Infernus's show an older copy), so an installed model appears there by itself, sized and placed for the hero. `scene=frame` keeps that prop, points it at the hero's model, scales and moves it so the installed model fits where the hero stood (its height, width, feet and centre), and hides the hero's own decor, so the 3D model stands in front of your background picture.
 - The background is `panorama/images/heroes/backgrounds/<hero>_bg_psd` (4096x2312); its left side sits under the hero grid.
 - The name is an SVG (`panorama/images/heroes/hero_names/<hero>.vsvg_c`): white filled paths after a CRC32 of the text. dlmod draws names with a small stroke font, or takes your SVG.
 - The three tags are lines of hero text, and their colours come from one stylesheet for all heroes (`citadel_hero_tags.vcss_c`, rules like `.hero_tengu … .heroTag.Tag1 .tagBacker`).
@@ -97,5 +147,5 @@ Making a character that is nothing like the hero it replaces taught us how the g
 **Pictures and props**
 
 - Ability icons are white glyphs on transparency (137x137) that the HUD tints. Cards are 280x380, the tall portrait 120x200, the minimap icon 50x50.
-- Which icon belongs to which ability is not in the icon's name (Ivy's *Air Drop* is `tengu_lightning_crash`); it is in `scripts/abilities.vdata`, which is zstd-compressed.
+- Which icon belongs to which ability is not in the icon's name (Ivy's *Air Drop* is `tengu_lightning_crash`); it is in `scripts/abilities.vdata` (`m_strAbilityImage`), with the particles, models, sounds and values of each ability; the hero's four slots are in `scripts/heroes.vdata` (`m_mapBoundAbilities`). Both are KeyValues3 compressed with Zstandard, which dlmod decodes itself.
 - Older ability models (thrown bombs) use the older model layout with an `MBUF` block; dlmod reads and rewrites both layouts.

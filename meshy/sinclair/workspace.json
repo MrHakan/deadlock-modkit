@@ -347,6 +347,13 @@
     "modelFolder": "models/heroes_staging/magician_v2/",
     "height": 104.61796760559082,
     "skeleton": "models/heroes_staging/magician_v2/magician.vnmskel",
+    "clipFolder": "models/heroes_staging/magician_v2/dmx/animation/ag2/",
+    "clips": 82,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "Throw_UpperBody",
@@ -459,6 +466,6 @@
       "Citadel_Magician_HeroTag_2",
       "Citadel_Magician_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

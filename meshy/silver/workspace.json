@@ -303,6 +303,15 @@
     "modelFolder": "models/heroes_wip/werewolf/",
     "height": 110.16688442230225,
     "skeleton": "models/heroes_wip/werewolf/werewolf.vnmskel",
+    "clipFolder": "models/heroes_wip/werewolf/clips/",
+    "clips": 223,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",
@@ -450,6 +459,6 @@
       "Citadel_Werewolf_HeroTag_2",
       "Citadel_Werewolf_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

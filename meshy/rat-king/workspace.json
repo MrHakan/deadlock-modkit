@@ -340,6 +340,16 @@
     "modelFolder": "models/heroes_wip/ratking/",
     "height": 248.93413925170898,
     "skeleton": "models/heroes_wip/ratking/ratking.vnmskel",
+    "clipFolder": "models/heroes_wip/ratking/clips/",
+    "clips": 198,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Ability_idle",
       "Cast_UpperBody",
@@ -479,6 +489,6 @@
       "Citadel_Ratking_HeroTag_2",
       "Citadel_Ratking_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

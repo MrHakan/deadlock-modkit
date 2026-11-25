@@ -16,7 +16,7 @@ import (
 // named, the prop's original stays and a copy made from the file is written beside it, and those
 // particle systems are pointed at the copy; this way one ability can get its own model when
 // several share one. -scale sizes the new mesh against the old one.
-func propCommand(ui *UI, store *Store, game Game, args []string, opts options) error {
+func propCommand(ui prompter, store *Store, game Game, args []string, opts options) error {
 	if len(args) < 2 {
 		return errors.New("name a game model and a model file, for example: dlmod prop models/abilities/ivy_thornbomb_model.vmdl bomb.glb")
 	}

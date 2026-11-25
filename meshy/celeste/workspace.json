@@ -307,6 +307,15 @@
     "modelFolder": "models/heroes_wip/unicorn/",
     "height": 117.46018028259277,
     "skeleton": "models/heroes_wip/unicorn/unicorn.vnmskel",
+    "clipFolder": "models/heroes_wip/unicorn/clips/",
+    "clips": 225,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",
@@ -452,6 +461,6 @@
       "Citadel_Unicorn_HeroTag_2",
       "Citadel_Unicorn_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

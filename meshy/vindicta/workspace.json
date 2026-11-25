@@ -312,6 +312,15 @@
     "modelFolder": "models/heroes_staging/hornet_v3/",
     "height": 90.73955979943275,
     "skeleton": "models/heroes_staging/hornet_v3/hornet.vnmskel",
+    "clipFolder": "models/heroes_staging/hornet_v3/clips/",
+    "clips": 153,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "melee_UpperBody",
@@ -426,6 +435,6 @@
       "Citadel_Vindicta_HeroTag_2",
       "Citadel_Vindicta_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

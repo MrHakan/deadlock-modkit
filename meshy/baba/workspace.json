@@ -324,6 +324,15 @@
     "modelFolder": "models/heroes_wip/baba/",
     "height": 104.01826548576355,
     "skeleton": "models/heroes_wip/baba/baba.vnmskel",
+    "clipFolder": "models/heroes_wip/baba/clips/",
+    "clips": 249,
+    "keyClips": [
+      "out_of_combat_idle",
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Throw_UpperBody",
       "melee_UpperBody",
@@ -455,6 +464,6 @@
       "Citadel_Baba_HeroTag_2",
       "Citadel_Baba_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

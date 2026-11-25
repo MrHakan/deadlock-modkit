@@ -346,6 +346,15 @@
     "modelFolder": "models/heroes_staging/astro/",
     "height": 91.88737297058105,
     "skeleton": "models/heroes_staging/astro/astro.vnmskel",
+    "clipFolder": "models/heroes_staging/astro/clips/",
+    "clips": 186,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit",
+      "reload_stand_idle"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "Throw_UpperBody",
@@ -480,6 +489,6 @@
       "Citadel_Astro_HeroTag_2",
       "Citadel_Astro_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

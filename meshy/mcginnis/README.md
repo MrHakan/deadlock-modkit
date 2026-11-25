@@ -27,6 +27,7 @@ Set the character's description (`concept`), the name and tags shown on the hero
 | --- | --- | --- |
 | Model | `models/heroes_wip/mcginnis/mcginnis.vmdl` | 109 units tall |
 | Animation skeleton | `models/heroes_wip/mcginnis/mcginnis.vnmskel` | |
+| Animation clips | `models/heroes_wip/mcginnis/clips/` | 268 clips |
 | Hero card (hero select, HUD) | `panorama/images/heroes/engineer_card_psd.vtex_c` | 280x380 |
 | Card at low health | `panorama/images/heroes/engineer_card_critical_psd.vtex_c` | 280x380 |
 | Card after a kill | `panorama/images/heroes/engineer_card_gloat_psd.vtex_c` | 280x380 |
@@ -54,8 +55,9 @@ Set the character's description (`concept`), the name and tags shown on the hero
 
 ## Animations
 
-The game plays McGinnis's own 0 clips on whatever model is installed, so a replacement is rigged to McGinnis's bones rather than given new animations. What the game does to those clips matters:
+The game plays McGinnis's own 268 clips on whatever model is installed, so a replacement is rigged to McGinnis's bones rather than given new animations. What the game does to those clips matters:
 
+- Clips worth checking a rig against: `weapon_run_n`, `weapon_crouch_idle`, `melee_quick_1`, `melee_hit`.
 - Melee, reloads and casts are laid over the movement through bone masks (`Ability_idle`, `Cast_UpperBody`, `FullBody`, `melee_UpperBody`, `Parry_UpperBody`, `Reload_Crouch`, `Reload_GunOnly`, `Reload_Haspath`, `Reload_HasPathCrouch`, `Reload_Idle`, `Reload_InAir`, `Reload_Slide`, `Reload_Zoomed`, `root`, `Throw_UpperBody`, `Turn_LowerBody`, `UpperBody_Fidget`, `UpperBodyReplace_AirDash`, `UpperBodyReplace_Asleep`, `UpperBodyReplace_Asleep_Channeling`, `UpperBodyReplace_Shopping`, `UpperBodyReplace_Slide`, `UpperBodyReplace_Turn`, `zero`, `Rocket_Pack`, `Rocket_Pack_Start`, `Ability_UpperBody`, `Ability_Upperbody_Toss`, `Ability_idle_sentry`, `Ability_idle_arm_adjust`, `Ability_Upperbody_HasPath`, `UpperBodyReplace_InAir`, `UpperBodyReplace_GroundDash`): only the upper body takes the clip, so a fit to the whole clip is wrong in game.
 - The hero graph solves both arms by IK towards the gun (`weaponHand_L`, `weaponHand_R`) and the legs towards `leg_*_IKTARGET`, so the arm bones in game are not what the clips say. Body parts that should follow the hero safely use `head`, `neck_0`, the spine, the clavicles, `pelvis` and the leg IK targets.
 - `attachWorld` never moves: weight on it keeps a part steady. `root_motion` is the character's place; its rest pose in the file is turned, which dlmod corrects.

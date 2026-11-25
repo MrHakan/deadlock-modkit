@@ -310,6 +310,14 @@
     "modelFolder": "models/heroes_wip/inferno/",
     "height": 115.09023571014404,
     "skeleton": "models/heroes_wip/inferno/inferno.vnmskel",
+    "clipFolder": "models/heroes_wip/inferno/clips/",
+    "clips": 198,
+    "keyClips": [
+      "weapon_run_n",
+      "weapon_crouch_idle",
+      "melee_quick_1",
+      "melee_hit"
+    ],
     "boneMasks": [
       "Cast_UpperBody",
       "FullBody",
@@ -444,6 +452,6 @@
       "Citadel_Inferno_HeroTag_2",
       "Citadel_Inferno_HeroTag_3"
     ],
-    "textSection": "hero_abilities.go"
+    "textSection": "scripts/heroes.vdata"
   }
 }

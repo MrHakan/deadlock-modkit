@@ -161,8 +161,10 @@ func deadlockIn(library string) string {
 	return ""
 }
 
-func launchGame() error {
-	url := "steam://rungameid/" + appID
+func launchGame() error { return startURL("steam://rungameid/" + appID) }
+
+// startURL opens an address with the system's handler (Steam for steam:// addresses).
+func startURL(url string) error {
 	switch runtime.GOOS {
 	case "windows":
 		return exec.Command("rundll32", "url.dll,FileProtocolHandler", url).Start()

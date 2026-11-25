@@ -75,6 +75,9 @@ type ImportOptions struct {
 	// Bones moved at rest, by name, in the model's space: only bones the animations leave alone
 	// (a muzzle, which follows its parent as it rests), to go with a moved part.
 	BoneShift map[string][3]float64
+
+	// Tuning adjusts the finished rig for what the game does to the hero's bones.
+	Tuning RigTuning
 }
 
 // moveBones shifts bones at rest in the model's skeleton and in its animation group's decode
